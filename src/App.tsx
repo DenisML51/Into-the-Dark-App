@@ -1,6 +1,5 @@
 import React from 'react';
 import { CharacterProvider, useCharacter } from './context/CharacterContext';
-import { CharacterCreation } from './components/CharacterCreation';
 import { CharacterSheet } from './components/CharacterSheet';
 import { CharacterList } from './components/CharacterList';
 import { motion } from 'framer-motion';

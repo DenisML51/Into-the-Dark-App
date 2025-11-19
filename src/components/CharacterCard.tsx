@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { CharacterPreview } from '../context/CharacterContext';
 import { CLASSES } from '../types';
-import { Heart, Shield, User } from 'lucide-react';
+import { Heart, User } from 'lucide-react';
 
 interface CharacterCardProps {
   character: CharacterPreview;

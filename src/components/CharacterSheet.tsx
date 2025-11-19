@@ -23,6 +23,7 @@ import { Attack, Ability, Currency, Trait } from '../types';
 import { Shield, Sword, Box, Zap, Coins, Settings, Target, CheckCircle2, XCircle, ArrowUp, Backpack, Sparkles, Plus } from 'lucide-react';
 import { TraitModal } from './TraitModal';
 import { TraitViewModal } from './TraitViewModal';
+import { BasicInfoModal } from './BasicInfoModal';
 
 type TabType = 'personality' | 'health' | 'abilities' | 'attacks' | 'inventory' | 'equipment';
 type InventorySubTab = 'all' | 'armor' | 'weapon' | 'item' | 'ammunition';
@@ -60,6 +61,7 @@ export const CharacterSheet: React.FC = () => {
   const [editingTrait, setEditingTrait] = useState<Trait | undefined>(undefined);
   const [showTraitViewModal, setShowTraitViewModal] = useState(false);
   const [viewingTrait, setViewingTrait] = useState<Trait | undefined>(undefined);
+  const [showBasicInfoModal, setShowBasicInfoModal] = useState(false);
   const [showCurrencyModal, setShowCurrencyModal] = useState(false);
   
   if (!character) {
@@ -676,7 +678,7 @@ export const CharacterSheet: React.FC = () => {
           
           <div className="flex gap-3">
             <button
-              onClick={exportToJSON}
+              onClick={() => exportToJSON()}
               className="px-4 py-2 bg-dark-card border border-dark-border rounded-xl hover:bg-dark-hover transition-all text-sm"
             >
               JSON
@@ -1072,7 +1074,15 @@ export const CharacterSheet: React.FC = () => {
                     <h3 className="text-xl font-bold mb-6">Личность</h3>
                     
                     {/* Character Info Card */}
-                    <div className="bg-gradient-to-br from-dark-bg to-dark-card border-2 border-dark-border rounded-2xl p-6 mb-8 shadow-lg">
+                    <div className="bg-gradient-to-br from-dark-bg to-dark-card border-2 border-dark-border rounded-2xl p-6 mb-8 shadow-lg group relative">
+                      <button
+                        onClick={() => setShowBasicInfoModal(true)}
+                        className="absolute top-4 right-4 w-8 h-8 bg-dark-bg border border-dark-border rounded-lg hover:bg-dark-hover opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center z-10"
+                        title="Редактировать основные данные"
+                      >
+                        <Settings className="w-4 h-4 text-gray-400" />
+                      </button>
+                      
                       {/* Name - prominently displayed */}
                       <div className="mb-6 pb-6 border-b border-dark-border">
                         <div className="text-xs text-gray-500 uppercase tracking-wider mb-2 font-semibold">Имя персонажа</div>
@@ -1578,9 +1588,6 @@ export const CharacterSheet: React.FC = () => {
                             {character.abilities.map((ability) => {
                               const usedResource = ability.resourceId ? character.resources.find(r => r.id === ability.resourceId) : null;
                               const canUse = usedResource ? usedResource.current >= (ability.resourceCost || 0) : true;
-                              const availabilityPercentage = usedResource && ability.resourceCost 
-                                ? Math.min(100, (usedResource.current / ability.resourceCost) * 100)
-                                : 100;
                               return (
                                 <motion.div
                                   key={ability.id}
@@ -2383,6 +2390,14 @@ export const CharacterSheet: React.FC = () => {
             }}
           />
         )}
+
+        {/* Basic Info Modal */}
+        <BasicInfoModal
+          isOpen={showBasicInfoModal}
+          onClose={() => setShowBasicInfoModal(false)}
+          character={character}
+          onSave={(updatedCharacter) => updateCharacter(updatedCharacter)}
+        />
 
         {/* Currency Modal */}
         <CurrencyModal

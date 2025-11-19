@@ -163,6 +163,11 @@ export const CharacterProvider: React.FC<{ children: ReactNode }> = ({ children 
     }
 
     const normalized = normalizeCharacter(newCharacter);
+    if (!normalized.id) {
+      console.error('Normalized character must have an ID');
+      return;
+    }
+    
     setCharacter(normalized);
     
     // Сохраняем персонажа

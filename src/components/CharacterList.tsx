@@ -8,7 +8,6 @@ import { Plus, Upload, User } from 'lucide-react';
 export const CharacterList: React.FC = () => {
   const { charactersList, loadCharacter, deleteCharacter, importFromJSON, goToCharacterList } = useCharacter();
   const [showCreation, setShowCreation] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleCardClick = (characterId: string) => {
@@ -19,8 +18,6 @@ export const CharacterList: React.FC = () => {
     e.stopPropagation();
     if (window.confirm('Вы уверены, что хотите удалить этого персонажа?')) {
       deleteCharacter(characterId);
-      setDeletingId(characterId);
-      setTimeout(() => setDeletingId(null), 300);
     }
   };
 
