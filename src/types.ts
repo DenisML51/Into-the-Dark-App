@@ -194,9 +194,17 @@ export const CLASSES = [
     description: 'Мастер зелий и трансмутации',
     mentalStrength: 60,
     subclasses: [
-      { id: 'potionmaster', name: 'Мастер зелий' },
-      { id: 'transmuter', name: 'Трансмутатор' },
-      { id: 'bomber', name: 'Подрывник' },
+      { id: 'amorist', name: 'Аморист' },
+      { id: 'apothecary', name: 'Аптекарь' },
+      { id: 'madbomber', name: 'Безумный бомбометальщик' },
+      { id: 'dynamoengineer', name: 'Динамо-инженер' },
+      { id: 'researcher', name: 'Исследователь' },
+      { id: 'xenochemist', name: 'Ксенохимик' },
+      { id: 'poisonmaster', name: 'Мастер ядов' },
+      { id: 'mixologist', name: 'Миксолог' },
+      { id: 'mutageneticist', name: 'Мутагенетик' },
+      { id: 'slimebreeder', name: 'Разводчик слизи' },
+      { id: 'shooter', name: 'Стрелок' },
     ]
   },
   { 
@@ -205,9 +213,12 @@ export const CLASSES = [
     description: 'Универсальный мастер боя',
     mentalStrength: 55,
     subclasses: [
-      { id: 'champion', name: 'Чемпион' },
-      { id: 'battlemaster', name: 'Мастер боевых искусств' },
-      { id: 'eldritch', name: 'Магический рыцарь' },
+      { id: 'royalarena', name: 'Королевская арена' },
+      { id: 'streetchild', name: 'Дитя улиц' },
+      { id: 'hounds', name: 'Псы и гончие' },
+      { id: 'rageandbile', name: 'Злость и желчь' },
+      { id: 'ringsquare', name: 'Квадрат ринга' },
+      { id: 'sweetscience', name: 'Сладкая наука' },
     ]
   },
   { 
@@ -216,9 +227,9 @@ export const CLASSES = [
     description: 'Закаленный в битвах ветеран',
     mentalStrength: 55,
     subclasses: [
-      { id: 'berserker', name: 'Берсерк' },
-      { id: 'defender', name: 'Защитник' },
-      { id: 'duelist', name: 'Дуэлянт' },
+      { id: 'battlemaster', name: 'Мастер боевых искусств' },
+      { id: 'champion', name: 'Чемпион' },
+      { id: 'gunslinger', name: 'Ганслингер' },
     ]
   },
   { 
@@ -227,9 +238,9 @@ export const CLASSES = [
     description: 'Тактик и вдохновитель союзников',
     mentalStrength: 55,
     subclasses: [
-      { id: 'tactician', name: 'Тактик' },
-      { id: 'commander', name: 'Командир' },
-      { id: 'banner', name: 'Знаменосец' },
+      { id: 'academyferocity', name: 'Академия свирепости' },
+      { id: 'academymachinations', name: 'Академия махинаций' },
+      { id: 'academytactics', name: 'Академия тактики' },
     ]
   },
   { 
@@ -238,9 +249,9 @@ export const CLASSES = [
     description: 'Следопыт и охотник',
     mentalStrength: 70,
     subclasses: [
-      { id: 'hunter', name: 'Охотник' },
-      { id: 'beastmaster', name: 'Повелитель зверей' },
-      { id: 'stalker', name: 'Преследователь' },
+      { id: 'orderabsolute', name: 'Орден абсолюта' },
+      { id: 'ordermarauders', name: 'Орден мародеров' },
+      { id: 'ordersalvation', name: 'Орден спасения' },
     ]
   },
   { 
@@ -249,9 +260,10 @@ export const CLASSES = [
     description: 'Искоренитель ереси и тьмы',
     mentalStrength: 80,
     subclasses: [
-      { id: 'witchhunter', name: 'Охотник на ведьм' },
-      { id: 'justicar', name: 'Юстициарий' },
-      { id: 'purifier', name: 'Очиститель' },
+      { id: 'pathcreaturehunter', name: 'Путь охотника на тварей' },
+      { id: 'pathviciousranger', name: 'Путь порочного следопыта' },
+      { id: 'pathvivisector', name: 'Путь вивисектора' },
+      { id: 'pathfanatic', name: 'Путь фанатика' },
     ]
   },
   { 
@@ -260,9 +272,9 @@ export const CLASSES = [
     description: 'Создатель и мастер оружия',
     mentalStrength: 55,
     subclasses: [
-      { id: 'forgemaster', name: 'Мастер кузни' },
-      { id: 'enchanter', name: 'Зачаровыватель' },
-      { id: 'gunsmith', name: 'Оружейный мастер' },
+      { id: 'craftduelist', name: 'Ремесло дуэлянта' },
+      { id: 'craftweaponsmaster', name: 'Ремесло мастера оружейника' },
+      { id: 'craftsniper', name: 'Ремесло снайпера' },
     ]
   },
   { 
@@ -272,8 +284,11 @@ export const CLASSES = [
     mentalStrength: 60,
     subclasses: [
       { id: 'thief', name: 'Вор' },
-      { id: 'assassin', name: 'Ассасин' },
-      { id: 'trickster', name: 'Трикстер' },
+      { id: 'assassin', name: 'Убийца' },
+      { id: 'duelist', name: 'Дуэлянт' },
+      { id: 'combinator', name: 'Комбинатор' },
+      { id: 'scout', name: 'Скаут' },
+      { id: 'investigator', name: 'Сыщик' },
     ]
   },
   { 
@@ -282,9 +297,15 @@ export const CLASSES = [
     description: 'Гений и исследователь',
     mentalStrength: 50,
     subclasses: [
-      { id: 'scholar', name: 'Ученый' },
+      { id: 'archaeologist', name: 'Археолог' },
+      { id: 'doctor', name: 'Врач' },
+      { id: 'naturalist', name: 'Натуралист' },
       { id: 'investigator', name: 'Следователь' },
-      { id: 'inventor', name: 'Изобретатель' },
+      { id: 'tactician', name: 'Тактик' },
+      { id: 'chef', name: 'Кулинар' },
+      { id: 'orator', name: 'Оратор' },
+      { id: 'philosopher', name: 'Философ' },
+      { id: 'runewriter', name: 'Рунописец' },
     ]
   },
 ];

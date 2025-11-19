@@ -6,6 +6,7 @@ import { exportToPDF } from '../utils/pdfExport';
 import { AttributeModal } from './AttributeModal';
 import { HealthModal } from './HealthModal';
 import { SanityModal } from './SanityModal';
+import { ExperienceModal } from './ExperienceModal';
 import { ResourceModal } from './ResourceModal';
 import { LimbModal } from './LimbModal';
 import { ArmorClassModal } from './ArmorClassModal';
@@ -19,7 +20,7 @@ import { ResourceViewModal } from './ResourceViewModal';
 import { CurrencyModal } from './CurrencyModal';
 import { getLucideIcon } from '../utils/iconUtils';
 import { Attack, Ability, Currency } from '../types';
-import { Shield, Sword, Box, Zap, Coins } from 'lucide-react';
+import { Shield, Sword, Box, Zap, Coins, Settings, Target, CheckCircle2, XCircle, ArrowUp, Backpack } from 'lucide-react';
 
 type TabType = 'personality' | 'health' | 'abilities' | 'attacks' | 'inventory' | 'equipment';
 type InventorySubTab = 'all' | 'armor' | 'weapon' | 'item' | 'ammunition';
@@ -27,12 +28,12 @@ type InventorySubTab = 'all' | 'armor' | 'weapon' | 'item' | 'ammunition';
 export const CharacterSheet: React.FC = () => {
   const { character, exportToJSON, clearCharacter, updateCharacter } = useCharacter();
   
-  const [xpInput, setXpInput] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('personality');
   const [inventorySubTab, setInventorySubTab] = useState<InventorySubTab>('all');
   const [selectedAttribute, setSelectedAttribute] = useState<string | null>(null);
   const [showHealthModal, setShowHealthModal] = useState(false);
   const [showSanityModal, setShowSanityModal] = useState(false);
+  const [showExperienceModal, setShowExperienceModal] = useState(false);
   const [showResourceModal, setShowResourceModal] = useState(false);
   const [editingResource, setEditingResource] = useState<Resource | undefined>(undefined);
   const [showLimbModal, setShowLimbModal] = useState(false);
@@ -102,13 +103,8 @@ export const CharacterSheet: React.FC = () => {
   const xpProgress = (xpInCurrentLevel / xpNeededForLevel) * 100;
   const canLevelUp = character.experience >= nextLevelXP && character.level < 20;
 
-  const addXP = () => {
-    const amount = parseInt(xpInput);
-    if (!isNaN(amount) && amount !== 0) {
-      const newXP = Math.max(0, character.experience + amount);
-      updateCharacter({ ...character, experience: newXP });
-      setXpInput('');
-    }
+  const updateExperience = (newExperience: number) => {
+    updateCharacter({ ...character, experience: newExperience });
   };
 
   const levelUp = () => {
@@ -582,10 +578,14 @@ export const CharacterSheet: React.FC = () => {
               {character.resources && character.resources.map((resource) => (
                 <div
                   key={resource.id}
-                  onClick={() => openResourceView(resource)}
+                  onClick={() => updateResourceCount(resource.id, -1)}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    openResourceView(resource);
+                  }}
                   className="relative group cursor-pointer"
                 >
-                  <div className="w-12 h-12 bg-dark-bg border border-dark-border rounded-xl flex items-center justify-center hover:border-blue-500 transition-all">
+                  <div className="w-12 h-12 bg-dark-bg border border-dark-border rounded-xl flex items-center justify-center hover:border-blue-500 transition-all active:scale-95">
                     {getLucideIcon(resource.iconName, { size: 24, className: 'text-blue-400' })}
                     <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center text-xs font-bold">
                       {resource.current}
@@ -594,6 +594,7 @@ export const CharacterSheet: React.FC = () => {
                   {/* Tooltip */}
                   <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-2 bg-dark-card border border-dark-border rounded-lg text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
                     {resource.name}: {resource.current}/{resource.max}
+                    <div className="text-xs text-gray-400 mt-1">ЛКМ: -1 • ПКМ: настройки</div>
                   </div>
                 </div>
               ))}
@@ -799,58 +800,36 @@ export const CharacterSheet: React.FC = () => {
 
           {/* XP Bar */}
           <div className="mt-3 pt-3 border-t border-dark-border">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <div className="flex-1">
                 <div className="flex justify-between items-center mb-1.5">
                   <div className="text-sm text-gray-400">
-                    Опыт: <span className="text-white font-semibold">{character.experience}</span> / {nextLevelXP}
+                    Уровень <span className="text-white font-semibold">{character.level}</span> • Опыт: <span className="text-white font-semibold">{character.experience}</span>
                   </div>
                   {canLevelUp && (
                     <button
                       onClick={levelUp}
-                      className="px-3 py-1 bg-green-500 text-white rounded-lg text-sm font-semibold hover:bg-green-600 transition-all animate-pulse"
+                      className="px-3 py-1 bg-green-500 text-white rounded-lg text-xs font-semibold hover:bg-green-600 transition-all animate-pulse"
                     >
-                      Повысить уровень!
+                      <ArrowUp className="w-3 h-3 inline mr-1" /> Повысить!
                     </button>
                   )}
                 </div>
-                <div className="h-3 bg-dark-bg rounded-full overflow-hidden border border-dark-border">
-                  <div
-                    className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-300"
-                    style={{ width: `${Math.min(xpProgress, 100)}%` }}
+                <div className="h-2.5 bg-dark-bg rounded-full overflow-hidden border border-dark-border">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(xpProgress, 100)}%` }}
+                    transition={{ duration: 0.3 }}
+                    className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all"
                   />
                 </div>
               </div>
-              
-              <div className="flex gap-2">
-                <input
-                  type="number"
-                  value={xpInput}
-                  onChange={(e) => setXpInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && addXP()}
-                  placeholder="XP"
-                  className="w-24 bg-dark-bg border border-dark-border rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <button
-                  onClick={addXP}
-                  className="w-8 h-8 bg-green-500/20 border border-green-500/50 text-green-400 rounded-lg hover:bg-green-500/30 transition-all text-lg font-bold flex items-center justify-center"
-                >
-                  +
-                </button>
-                <button
-                  onClick={() => {
-                    const amount = parseInt(xpInput);
-                    if (!isNaN(amount) && amount !== 0) {
-                      const newXP = Math.max(0, character.experience - Math.abs(amount));
-                      updateCharacter({ ...character, experience: newXP });
-                      setXpInput('');
-                    }
-                  }}
-                  className="w-8 h-8 bg-red-500/20 border border-red-500/50 text-red-400 rounded-lg hover:bg-red-500/30 transition-all text-lg font-bold flex items-center justify-center"
-                >
-                  −
-                </button>
-              </div>
+              <button
+                onClick={() => setShowExperienceModal(true)}
+                className="px-3 py-2 bg-dark-card border border-dark-border rounded-lg hover:bg-dark-hover transition-all text-sm font-semibold flex-shrink-0"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
             </div>
           </div>
         </motion.div>
@@ -1399,77 +1378,82 @@ export const CharacterSheet: React.FC = () => {
                             <div className="h-px flex-1 bg-dark-border"></div>
                           </div>
                           <div className="space-y-2">
-                            {character.resources.map((resource) => (
-                          <div
-                            key={resource.id}
-                            className="bg-dark-bg rounded-lg p-3 border border-dark-border hover:border-blue-500/50 transition-all"
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className="w-12 h-12 bg-dark-card rounded-lg flex items-center justify-center border border-dark-border flex-shrink-0">
-                                {getLucideIcon(resource.iconName, { size: 24, className: 'text-blue-400' })}
-                              </div>
-                              
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center justify-between mb-1">
-                                  <h4 className="font-bold truncate">{resource.name}</h4>
-                                  <button
-                                    onClick={() => openResourceModal(resource)}
-                                    className="px-2 py-1 bg-dark-card border border-dark-border rounded text-xs hover:bg-dark-hover transition-all flex-shrink-0"
-                                  >
-                                    Настроить
-                                  </button>
-                                </div>
-                                
-                                {resource.description && (
-                                  <p className="text-xs text-gray-400 mb-2 line-clamp-1">{resource.description}</p>
-                                )}
-                                
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    onClick={() => updateResourceCount(resource.id, -1)}
-                                    disabled={resource.current <= 0}
-                                    className="w-7 h-7 rounded-lg bg-dark-card border border-dark-border hover:bg-dark-hover disabled:opacity-30 disabled:cursor-not-allowed transition-all font-bold flex-shrink-0"
-                                  >
-                                    −
-                                  </button>
-                                  
-                                  <div className="flex-1 min-w-0">
-                                    <div className="text-center mb-1">
-                                      <span className="text-xl font-bold">{resource.current}</span>
-                                      <span className="text-gray-400 text-sm"> / {resource.max}</span>
+                            {character.resources.map((resource) => {
+                              const percentage = (resource.current / resource.max) * 100;
+                              return (
+                                <motion.div
+                                  key={resource.id}
+                                  initial={{ opacity: 0, x: -10 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  className="group relative bg-dark-card rounded-lg border border-dark-border border-l-4 border-l-blue-500 hover:border-blue-400 transition-all overflow-hidden"
+                                >
+                                  <div className="flex items-center gap-3 p-3">
+                                    <div className="flex-shrink-0 w-12 h-12 bg-blue-500/10 rounded-lg flex items-center justify-center border border-blue-500/20">
+                                      {getLucideIcon(resource.iconName, { size: 24, className: 'text-blue-400' })}
                                     </div>
-                                    <div className="h-2 bg-dark-card rounded-full overflow-hidden border border-dark-border">
-                                      <div
-                                        className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-300"
-                                        style={{ width: `${(resource.current / resource.max) * 100}%` }}
-                                      />
+                                    
+                                    <h4 className="font-bold text-sm text-gray-100 truncate min-w-[80px]">{resource.name}</h4>
+                                    
+                                    <button
+                                      onClick={() => updateResourceCount(resource.id, -1)}
+                                      disabled={resource.current <= 0}
+                                      className="w-8 h-8 rounded-lg bg-dark-bg border border-dark-border hover:bg-dark-hover disabled:opacity-30 disabled:cursor-not-allowed transition-all font-bold flex-shrink-0 text-gray-300 text-lg"
+                                    >
+                                      −
+                                    </button>
+                                    
+                                    <div className="flex-1 min-w-0 relative">
+                                      <div className="h-10 bg-dark-bg rounded-lg overflow-hidden border border-dark-border relative">
+                                        <motion.div
+                                          initial={{ width: 0 }}
+                                          animate={{ width: `${percentage}%` }}
+                                          transition={{ duration: 0.3 }}
+                                          className={`h-full rounded-lg transition-all ${
+                                            percentage > 75 ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
+                                            percentage > 50 ? 'bg-gradient-to-r from-blue-500 to-cyan-500' :
+                                            percentage > 25 ? 'bg-gradient-to-r from-yellow-500 to-orange-500' :
+                                            'bg-gradient-to-r from-red-500 to-pink-500'
+                                          }`}
+                                        />
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                          <span className="text-sm font-bold text-gray-100 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+                                            {resource.current} / {resource.max}
+                                          </span>
+                                        </div>
+                                      </div>
                                     </div>
+                                    
+                                    <button
+                                      onClick={() => updateResourceCount(resource.id, 1)}
+                                      disabled={resource.current >= resource.max}
+                                      className="w-8 h-8 rounded-lg bg-dark-bg border border-dark-border hover:bg-dark-hover disabled:opacity-30 disabled:cursor-not-allowed transition-all font-bold flex-shrink-0 text-gray-300 text-lg"
+                                    >
+                                      +
+                                    </button>
+                                    
+                                    <button
+                                      onClick={() => {
+                                        const newResources = character.resources.map(r =>
+                                          r.id === resource.id ? { ...r, current: r.max } : r
+                                        );
+                                        updateCharacter({ ...character, resources: newResources });
+                                      }}
+                                      className="px-3 py-2 bg-green-500/10 border border-green-500/30 text-green-400 rounded-lg hover:bg-green-500/20 transition-all text-xs font-semibold flex-shrink-0"
+                                    >
+                                      Восст.
+                                    </button>
+                                    
+                                    <button
+                                      onClick={() => openResourceModal(resource)}
+                                      className="flex-shrink-0 p-2 text-gray-400 hover:text-gray-200 hover:bg-dark-hover rounded transition-all opacity-0 group-hover:opacity-100"
+                                      title="Настроить"
+                                    >
+                                      <Settings className="w-4 h-4" />
+                                    </button>
                                   </div>
-                                  
-                                  <button
-                                    onClick={() => updateResourceCount(resource.id, 1)}
-                                    disabled={resource.current >= resource.max}
-                                    className="w-7 h-7 rounded-lg bg-dark-card border border-dark-border hover:bg-dark-hover disabled:opacity-30 disabled:cursor-not-allowed transition-all font-bold flex-shrink-0"
-                                  >
-                                    +
-                                  </button>
-                                  
-                                  <button
-                                    onClick={() => {
-                                      const newResources = character.resources.map(r =>
-                                        r.id === resource.id ? { ...r, current: r.max } : r
-                                      );
-                                      updateCharacter({ ...character, resources: newResources });
-                                    }}
-                                    className="px-3 py-1 bg-green-500/20 border border-green-500/50 text-green-400 rounded-lg hover:bg-green-500/30 transition-all text-xs font-semibold flex-shrink-0"
-                                  >
-                                    Восст.
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                            ))}
+                                </motion.div>
+                              );
+                            })}
                           </div>
                         </div>
                       </>
@@ -1487,39 +1471,78 @@ export const CharacterSheet: React.FC = () => {
                           <div className="space-y-2">
                             {character.abilities.map((ability) => {
                               const usedResource = ability.resourceId ? character.resources.find(r => r.id === ability.resourceId) : null;
+                              const canUse = usedResource ? usedResource.current >= (ability.resourceCost || 0) : true;
+                              const availabilityPercentage = usedResource && ability.resourceCost 
+                                ? Math.min(100, (usedResource.current / ability.resourceCost) * 100)
+                                : 100;
                               return (
-                                <div
+                                <motion.div
                                   key={ability.id}
+                                  initial={{ opacity: 0, x: -10 }}
+                                  animate={{ opacity: 1, x: 0 }}
                                   onClick={() => openAbilityView(ability)}
-                                  className="bg-dark-bg rounded-lg p-2.5 border border-dark-border hover:border-blue-500/50 transition-all cursor-pointer"
+                                  className="group relative bg-dark-card rounded-lg border border-dark-border border-l-4 border-l-purple-500 hover:border-purple-400 transition-all cursor-pointer overflow-hidden"
                                 >
-                                  <div className="flex items-center justify-between mb-2">
-                                    <h4 className="font-bold text-sm">{ability.name}</h4>
-                                    <div className="flex items-center gap-2">
-                                      <span className={`px-2 py-0.5 rounded-full text-xs border ${getActionTypeColor(ability.actionType)}`}>
-                                        {getActionTypeLabel(ability.actionType)}
-                                      </span>
-                                      <button
-                                        onClick={(e) => { e.stopPropagation(); openAbilityModal(ability); }}
-                                        className="px-2 py-1 bg-dark-card border border-dark-border rounded text-xs hover:bg-dark-hover transition-all"
-                                      >
-                                        Настроить
-                                      </button>
+                                  <div className="flex items-center gap-2.5 p-2.5">
+                                    <div className="flex-shrink-0 w-10 h-10 bg-purple-500/10 rounded-lg flex items-center justify-center border border-purple-500/20">
+                                      <Zap className="w-4 h-4 text-purple-400" />
+                                    </div>
+                                    
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <h4 className="font-bold text-sm text-gray-100 truncate">{ability.name}</h4>
+                                        <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${getActionTypeColor(ability.actionType)}`}>
+                                          {getActionTypeLabel(ability.actionType)}
+                                        </span>
+                                        {usedResource && ability.resourceCost && (
+                                          <div className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs border ${
+                                            canUse 
+                                              ? 'bg-green-500/10 border-green-500/30 text-green-400' 
+                                              : 'bg-red-500/10 border-red-500/30 text-red-400'
+                                          }`}>
+                                            {canUse ? (
+                                              <CheckCircle2 className="w-3 h-3" />
+                                            ) : (
+                                              <>
+                                                <XCircle className="w-3 h-3" />
+                                                <span className="text-xs">{usedResource.current}/{ability.resourceCost}</span>
+                                              </>
+                                            )}
+                                          </div>
+                                        )}
+                                        <button
+                                          onClick={(e) => { e.stopPropagation(); openAbilityModal(ability); }}
+                                          className="flex-shrink-0 p-1 text-gray-400 hover:text-gray-200 hover:bg-dark-hover rounded transition-all opacity-0 group-hover:opacity-100 ml-auto"
+                                          title="Настроить"
+                                        >
+                                          <Settings className="w-3.5 h-3.5" />
+                                        </button>
+                                      </div>
+                                      
+                                      {(ability.description || (usedResource && ability.resourceCost)) && (
+                                        <div className="flex items-center gap-2 text-xs mt-0.5">
+                                          {ability.description && (
+                                            <span className="text-gray-400 line-clamp-1">{ability.description}</span>
+                                          )}
+                                          {usedResource && ability.resourceCost && (
+                                            <>
+                                              {ability.description && <span className="text-gray-600">•</span>}
+                                              <span className="text-gray-500">
+                                                Тратит: <span className="text-purple-400 font-semibold">{ability.resourceCost} {usedResource.name}</span>
+                                              </span>
+                                            </>
+                                          )}
+                                        </div>
+                                      )}
+                                      
+                                      {ability.effect && (
+                                        <div className="mt-1 text-xs text-gray-300 line-clamp-1">
+                                          <span className="text-gray-500">Эффект:</span> {ability.effect}
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
-                                  {ability.description && (
-                                    <p className="text-xs text-gray-400 mb-1.5 break-words overflow-wrap-anywhere line-clamp-2">{ability.description}</p>
-                                  )}
-                                  {usedResource && (
-                                    <div className="text-xs mb-1.5 px-2 py-0.5 bg-purple-500/10 border border-purple-500/30 rounded text-center">
-                                      Тратит: <span className="font-semibold">{ability.resourceCost} {usedResource.name}</span>
-                                    </div>
-                                  )}
-                                  <div className="text-xs p-2 bg-dark-card rounded border border-dark-border">
-                                    <div className="text-gray-400 text-xs mb-0.5">Эффект:</div>
-                                    <div className="text-white text-xs break-words overflow-wrap-anywhere line-clamp-2">{ability.effect}</div>
-                                  </div>
-                                </div>
+                                </motion.div>
                               );
                             })}
                           </div>
@@ -1580,47 +1603,56 @@ export const CharacterSheet: React.FC = () => {
                             </div>
                             <div className="space-y-2 mb-4">
                               {character.attacks.filter(a => a.weaponId).map((attack) => (
-                                <div
+                                <motion.div
                                   key={attack.id}
+                                  initial={{ opacity: 0, x: -10 }}
+                                  animate={{ opacity: 1, x: 0 }}
                                   onClick={() => openAttackView(attack)}
-                                  className="bg-dark-bg rounded-lg p-2.5 border border-dark-border hover:border-blue-500/50 transition-all cursor-pointer"
+                                  className="group relative bg-dark-card rounded-lg border border-dark-border border-l-4 border-l-red-500 hover:border-red-400 transition-all cursor-pointer overflow-hidden"
                                 >
-                                  <div className="flex items-center justify-between mb-2">
-                                    <h4 className="font-bold text-sm">{attack.name}</h4>
-                                    <div className="flex items-center gap-2">
-                                      <span className={`px-2 py-0.5 rounded-full text-xs border ${getActionTypeColor(attack.actionType)}`}>
-                                        {getActionTypeLabel(attack.actionType)}
-                                      </span>
-                                      <button
-                                        onClick={(e) => { e.stopPropagation(); openAttackModal(attack); }}
-                                        className="px-2 py-1 bg-dark-card border border-dark-border rounded text-xs hover:bg-dark-hover transition-all"
-                                      >
-                                        Настроить
-                                      </button>
+                                  <div className="flex items-center gap-3 p-3">
+                                    <div className="flex-shrink-0 w-12 h-12 bg-red-500/10 rounded-lg flex items-center justify-center border border-red-500/20">
+                                      <Sword className="w-5 h-5 text-red-400" />
                                     </div>
-                                  </div>
-                                  <div className="grid grid-cols-3 gap-1.5 text-xs">
-                                    <div className="bg-dark-card rounded px-2 py-1 text-center">
-                                      <div className="text-gray-400 text-xs">Бонус</div>
-                                      <div className="font-bold">
-                                        {attack.hitBonus >= 0 ? '+' : ''}{attack.hitBonus}
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <h4 className="font-bold text-sm text-gray-100 truncate">{attack.name}</h4>
+                                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${getActionTypeColor(attack.actionType)}`}>
+                                          {getActionTypeLabel(attack.actionType)}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-3 text-xs">
+                                        <span className="text-gray-300">
+                                          <span className="text-gray-500">Бонус:</span> <span className="font-bold text-blue-400">{attack.hitBonus >= 0 ? '+' : ''}{attack.hitBonus}</span>
+                                        </span>
+                                        <span className="text-gray-500">•</span>
+                                        <span className="text-gray-300">
+                                          <span className="text-gray-500">Урон:</span> <span className="font-bold text-red-400">{attack.damage}</span>
+                                        </span>
+                                        <span className="text-gray-500">•</span>
+                                        <span className="text-gray-300 truncate">
+                                          <span className="text-gray-500">Тип:</span> <span className="font-bold text-purple-400">{attack.damageType}</span>
+                                        </span>
+                                        {attack.usesAmmunition && (
+                                          <>
+                                            <span className="text-gray-500">•</span>
+                                            <span className="text-orange-400 flex items-center gap-1">
+                                              <Target className="w-3 h-3" />
+                                              {attack.ammunitionCost}
+                                            </span>
+                                          </>
+                                        )}
                                       </div>
                                     </div>
-                                    <div className="bg-dark-card rounded px-2 py-1 text-center">
-                                      <div className="text-gray-400 text-xs">Урон</div>
-                                      <div className="font-bold text-xs">{attack.damage}</div>
-                                    </div>
-                                    <div className="bg-dark-card rounded px-2 py-1 text-center">
-                                      <div className="text-gray-400 text-xs">Тип</div>
-                                      <div className="font-bold text-xs truncate">{attack.damageType}</div>
-                                    </div>
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); openAttackModal(attack); }}
+                                      className="flex-shrink-0 p-2 text-gray-400 hover:text-gray-200 hover:bg-dark-hover rounded transition-all opacity-0 group-hover:opacity-100"
+                                      title="Настроить"
+                                    >
+                                      <Settings className="w-4 h-4" />
+                                    </button>
                                   </div>
-                                  {attack.usesAmmunition && (
-                                    <div className="mt-1.5 text-xs px-2 py-0.5 bg-orange-500/10 border border-orange-500/30 rounded text-center">
-                                      Тратит {attack.ammunitionCost} боеприпас(а)
-                                    </div>
-                                  )}
-                                </div>
+                                </motion.div>
                               ))}
                             </div>
                           </>
@@ -1636,47 +1668,56 @@ export const CharacterSheet: React.FC = () => {
                             </div>
                             <div className="space-y-2">
                               {character.attacks.filter(a => !a.weaponId).map((attack) => (
-                                <div
+                                <motion.div
                                   key={attack.id}
+                                  initial={{ opacity: 0, x: -10 }}
+                                  animate={{ opacity: 1, x: 0 }}
                                   onClick={() => openAttackView(attack)}
-                                  className="bg-dark-bg rounded-lg p-2.5 border border-dark-border hover:border-blue-500/50 transition-all cursor-pointer"
+                                  className="group relative bg-dark-card rounded-lg border border-dark-border border-l-4 border-l-purple-500 hover:border-purple-400 transition-all cursor-pointer overflow-hidden"
                                 >
-                                  <div className="flex items-center justify-between mb-2">
-                                    <h4 className="font-bold text-sm">{attack.name}</h4>
-                                    <div className="flex items-center gap-2">
-                                      <span className={`px-2 py-0.5 rounded-full text-xs border ${getActionTypeColor(attack.actionType)}`}>
-                                        {getActionTypeLabel(attack.actionType)}
-                                      </span>
-                                      <button
-                                        onClick={(e) => { e.stopPropagation(); openAttackModal(attack); }}
-                                        className="px-2 py-1 bg-dark-card border border-dark-border rounded text-xs hover:bg-dark-hover transition-all"
-                                      >
-                                        Настроить
-                                      </button>
+                                  <div className="flex items-center gap-3 p-3">
+                                    <div className="flex-shrink-0 w-12 h-12 bg-purple-500/10 rounded-lg flex items-center justify-center border border-purple-500/20">
+                                      <Zap className="w-5 h-5 text-purple-400" />
                                     </div>
-                                  </div>
-                                  <div className="grid grid-cols-3 gap-1.5 text-xs">
-                                    <div className="bg-dark-card rounded px-2 py-1 text-center">
-                                      <div className="text-gray-400 text-xs">Бонус</div>
-                                      <div className="font-bold">
-                                        {attack.hitBonus >= 0 ? '+' : ''}{attack.hitBonus}
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <h4 className="font-bold text-sm text-gray-100 truncate">{attack.name}</h4>
+                                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${getActionTypeColor(attack.actionType)}`}>
+                                          {getActionTypeLabel(attack.actionType)}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-3 text-xs">
+                                        <span className="text-gray-300">
+                                          <span className="text-gray-500">Бонус:</span> <span className="font-bold text-blue-400">{attack.hitBonus >= 0 ? '+' : ''}{attack.hitBonus}</span>
+                                        </span>
+                                        <span className="text-gray-500">•</span>
+                                        <span className="text-gray-300">
+                                          <span className="text-gray-500">Урон:</span> <span className="font-bold text-red-400">{attack.damage}</span>
+                                        </span>
+                                        <span className="text-gray-500">•</span>
+                                        <span className="text-gray-300 truncate">
+                                          <span className="text-gray-500">Тип:</span> <span className="font-bold text-purple-400">{attack.damageType}</span>
+                                        </span>
+                                        {attack.usesAmmunition && (
+                                          <>
+                                            <span className="text-gray-500">•</span>
+                                            <span className="text-orange-400 flex items-center gap-1">
+                                              <Target className="w-3 h-3" />
+                                              {attack.ammunitionCost}
+                                            </span>
+                                          </>
+                                        )}
                                       </div>
                                     </div>
-                                    <div className="bg-dark-card rounded px-2 py-1 text-center">
-                                      <div className="text-gray-400 text-xs">Урон</div>
-                                      <div className="font-bold text-xs">{attack.damage}</div>
-                                    </div>
-                                    <div className="bg-dark-card rounded px-2 py-1 text-center">
-                                      <div className="text-gray-400 text-xs">Тип</div>
-                                      <div className="font-bold text-xs truncate">{attack.damageType}</div>
-                                    </div>
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); openAttackModal(attack); }}
+                                      className="flex-shrink-0 p-2 text-gray-400 hover:text-gray-200 hover:bg-dark-hover rounded transition-all opacity-0 group-hover:opacity-100"
+                                      title="Настроить"
+                                    >
+                                      <Settings className="w-4 h-4" />
+                                    </button>
                                   </div>
-                                  {attack.usesAmmunition && (
-                                    <div className="mt-1.5 text-xs px-2 py-0.5 bg-orange-500/10 border border-orange-500/30 rounded text-center">
-                                      Тратит {attack.ammunitionCost} боеприпас(а)
-                                    </div>
-                                  )}
-                                </div>
+                                </motion.div>
                               ))}
                             </div>
                           </>
@@ -1684,7 +1725,7 @@ export const CharacterSheet: React.FC = () => {
                       </>
                     ) : (
                       <div className="text-gray-400 text-center py-12">
-                        <p className="text-xl mb-2">⚔️</p>
+                        <Sword className="w-8 h-8 mx-auto mb-2 text-gray-500" />
                         <p className="text-sm">Нет атак</p>
                         <p className="text-xs mt-1">Экипируйте оружие или добавьте атаку</p>
                       </div>
@@ -1777,7 +1818,7 @@ export const CharacterSheet: React.FC = () => {
                       </div>
                     ) : (
                       <div className="text-gray-400 text-center py-12">
-                        <p className="text-xl mb-2">🎒</p>
+                        <Backpack className="w-8 h-8 mx-auto mb-2 text-gray-500" />
                         <p className="text-sm">Нет экипированных предметов</p>
                         <p className="text-xs mt-1">Экипируйте предметы из инвентаря</p>
                       </div>
@@ -2025,6 +2066,16 @@ export const CharacterSheet: React.FC = () => {
           onUpdate={updateSanity}
         />
 
+        {/* Experience Modal */}
+        <ExperienceModal
+          isOpen={showExperienceModal}
+          onClose={() => setShowExperienceModal(false)}
+          experience={character.experience}
+          level={character.level}
+          onUpdate={updateExperience}
+          onLevelUp={levelUp}
+        />
+
         {/* Resource Modal */}
         <ResourceModal
           isOpen={showResourceModal}
@@ -2196,6 +2247,12 @@ export const CharacterSheet: React.FC = () => {
             onEdit={() => { 
               setShowResourceViewModal(false);
               openResourceModal(viewingResource); 
+            }}
+            onUpdate={(updatedResource) => {
+              const newResources = character.resources.map(r =>
+                r.id === updatedResource.id ? updatedResource : r
+              );
+              updateCharacter({ ...character, resources: newResources });
             }}
           />
         )}

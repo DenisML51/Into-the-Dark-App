@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { Check } from 'lucide-react';
 import { Character, RACES, CLASSES, ATTRIBUTES_LIST, SKILLS_LIST, INITIAL_POINTS, ATTRIBUTE_START, ATTRIBUTE_MIN, ATTRIBUTE_MAX, POINT_BUY_COSTS, getProficiencyBonus, calculateMaxSanity, getDefaultLimbs } from '../types';
 import { useCharacter } from '../context/CharacterContext';
 
@@ -385,7 +386,7 @@ export const CharacterCreation: React.FC = () => {
             >
               <h3 className="text-lg font-semibold mb-4">Навыки</h3>
               <div className="text-xs text-gray-400 mb-4">
-                ✓ = владение, E = экспертиза
+                <Check className="w-3 h-3 inline" /> = владение, E = экспертиза
               </div>
               
               <div className="space-y-2 max-h-[600px] overflow-y-auto pr-2">
