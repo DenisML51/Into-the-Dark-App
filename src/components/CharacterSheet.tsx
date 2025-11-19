@@ -1,0 +1,2179 @@
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useCharacter } from '../context/CharacterContext';
+import { RACES, CLASSES, ATTRIBUTES_LIST, EXPERIENCE_BY_LEVEL, getProficiencyBonus, SKILLS_LIST, calculateMaxSanity, Resource, Limb, getLimbInjuryLevel, Character, InventoryItem } from '../types';
+import { exportToPDF } from '../utils/pdfExport';
+import { AttributeModal } from './AttributeModal';
+import { HealthModal } from './HealthModal';
+import { SanityModal } from './SanityModal';
+import { ResourceModal } from './ResourceModal';
+import { LimbModal } from './LimbModal';
+import { ArmorClassModal } from './ArmorClassModal';
+import { ItemModal } from './ItemModal';
+import { AttackModal } from './AttackModal';
+import { AbilityModal } from './AbilityModal';
+import { AttackViewModal } from './AttackViewModal';
+import { AbilityViewModal } from './AbilityViewModal';
+import { ItemViewModal } from './ItemViewModal';
+import { ResourceViewModal } from './ResourceViewModal';
+import { getLucideIcon } from '../utils/iconUtils';
+import { Attack, Ability } from '../types';
+import { Shield, Sword, Box, Zap } from 'lucide-react';
+
+type TabType = 'personality' | 'health' | 'abilities' | 'attacks' | 'inventory' | 'equipment';
+type InventorySubTab = 'all' | 'armor' | 'weapon' | 'item' | 'ammunition';
+
+export const CharacterSheet: React.FC = () => {
+  const { character, exportToJSON, clearCharacter, updateCharacter } = useCharacter();
+  
+  const [xpInput, setXpInput] = useState('');
+  const [activeTab, setActiveTab] = useState<TabType>('personality');
+  const [inventorySubTab, setInventorySubTab] = useState<InventorySubTab>('all');
+  const [selectedAttribute, setSelectedAttribute] = useState<string | null>(null);
+  const [showHealthModal, setShowHealthModal] = useState(false);
+  const [showSanityModal, setShowSanityModal] = useState(false);
+  const [showResourceModal, setShowResourceModal] = useState(false);
+  const [editingResource, setEditingResource] = useState<Resource | undefined>(undefined);
+  const [showLimbModal, setShowLimbModal] = useState(false);
+  const [selectedLimb, setSelectedLimb] = useState<Limb | null>(null);
+  const [showACModal, setShowACModal] = useState(false);
+  const [showItemModal, setShowItemModal] = useState(false);
+  const [editingItem, setEditingItem] = useState<InventoryItem | undefined>(undefined);
+  const [showAmmunitionModal, setShowAmmunitionModal] = useState(false);
+  const [showAttackModal, setShowAttackModal] = useState(false);
+  const [editingAttack, setEditingAttack] = useState<Attack | undefined>(undefined);
+  const [showAbilityModal, setShowAbilityModal] = useState(false);
+  const [editingAbility, setEditingAbility] = useState<Ability | undefined>(undefined);
+  const [showAttackViewModal, setShowAttackViewModal] = useState(false);
+  const [viewingAttack, setViewingAttack] = useState<Attack | undefined>(undefined);
+  const [showAbilityViewModal, setShowAbilityViewModal] = useState(false);
+  const [viewingAbility, setViewingAbility] = useState<Ability | undefined>(undefined);
+  const [showItemViewModal, setShowItemViewModal] = useState(false);
+  const [viewingItem, setViewingItem] = useState<InventoryItem | undefined>(undefined);
+  const [showResourceViewModal, setShowResourceViewModal] = useState(false);
+  const [viewingResource, setViewingResource] = useState<Resource | undefined>(undefined);
+  
+  if (!character) {
+    return null;
+  }
+  
+  const race = RACES.find(r => r.id === character.race);
+  const charClass = CLASSES.find(c => c.id === character.class);
+  const selectedSubclass = charClass?.subclasses.find(sc => sc.id === character.subclass);
+  
+  const getModifier = (attrId: string) => {
+    const value = character.attributes[attrId] || 10;
+    const bonus = character.attributeBonuses?.[attrId] || 0;
+    const total = Math.floor((value - 10) / 2) + bonus;
+    return total >= 0 ? `+${total}` : `${total}`;
+  };
+
+  const getSkillModifier = (skillId: string) => {
+    if (!character.skills || !Array.isArray(character.skills)) return '+0';
+    const skill = character.skills.find(s => s.id === skillId);
+    if (!skill) return '+0';
+    
+    const attrValue = character.attributes[skill.attribute] || 10;
+    const attrBonus = character.attributeBonuses?.[skill.attribute] || 0;
+    const baseModifier = Math.floor((attrValue - 10) / 2) + attrBonus;
+    const profBonus = skill.proficient ? character.proficiencyBonus : 0;
+    const expertiseBonus = skill.expertise ? character.proficiencyBonus : 0;
+    const total = baseModifier + profBonus + expertiseBonus;
+    
+    return total >= 0 ? `+${total}` : `${total}`;
+  };
+
+  const getSavingThrowModifier = (attrId: string) => {
+    const value = character.attributes[attrId] || 10;
+    const bonus = character.attributeBonuses?.[attrId] || 0;
+    const baseModifier = Math.floor((value - 10) / 2) + bonus;
+    const isProficient = character.savingThrowProficiencies?.includes(attrId);
+    const total = baseModifier + (isProficient ? character.proficiencyBonus : 0);
+    return total >= 0 ? `+${total}` : `${total}`;
+  };
+
+  // XP System
+  const currentLevelXP = EXPERIENCE_BY_LEVEL[character.level];
+  const nextLevelXP = EXPERIENCE_BY_LEVEL[character.level + 1] || EXPERIENCE_BY_LEVEL[20];
+  const xpInCurrentLevel = character.experience - currentLevelXP;
+  const xpNeededForLevel = nextLevelXP - currentLevelXP;
+  const xpProgress = (xpInCurrentLevel / xpNeededForLevel) * 100;
+  const canLevelUp = character.experience >= nextLevelXP && character.level < 20;
+
+  const addXP = () => {
+    const amount = parseInt(xpInput);
+    if (!isNaN(amount) && amount !== 0) {
+      const newXP = Math.max(0, character.experience + amount);
+      updateCharacter({ ...character, experience: newXP });
+      setXpInput('');
+    }
+  };
+
+  const levelUp = () => {
+    if (canLevelUp) {
+      const newLevel = character.level + 1;
+      const newProfBonus = getProficiencyBonus(newLevel);
+      updateCharacter({
+        ...character,
+        level: newLevel,
+        proficiencyBonus: newProfBonus,
+      });
+    }
+  };
+
+  const updateSpeed = (newSpeed: number) => {
+    updateCharacter({ ...character, speed: newSpeed });
+  };
+
+  const updateSanity = (newSanity: number) => {
+    const maxSanity = getMaxSanity();
+    const clampedSanity = Math.min(maxSanity, Math.max(0, newSanity));
+    updateCharacter({ ...character, sanity: clampedSanity });
+  };
+
+  const getMaxSanity = () => {
+    return calculateMaxSanity(
+      character.class,
+      character.attributes.wisdom || 10,
+      character.level
+    );
+  };
+
+  const isInsane = character.sanity <= 0;
+
+  const updateHealth = (current: number, max: number, temp: number, bonus: number) => {
+    updateCharacter({
+      ...character,
+      currentHP: current,
+      maxHP: max,
+      tempHP: temp,
+      maxHPBonus: bonus,
+    });
+  };
+
+  const getTotalMaxHP = () => character.maxHP + character.maxHPBonus;
+  const isDying = character.currentHP <= 0;
+
+  const updateLanguagesAndProficiencies = (value: string) => {
+    updateCharacter({ ...character, languagesAndProficiencies: value });
+  };
+
+  const saveResource = (resource: Resource) => {
+    const existingIndex = character.resources.findIndex(r => r.id === resource.id);
+    let newResources;
+    
+    if (existingIndex >= 0) {
+      // Update existing
+      newResources = [...character.resources];
+      newResources[existingIndex] = resource;
+    } else {
+      // Add new
+      newResources = [...character.resources, resource];
+    }
+    
+    updateCharacter({ ...character, resources: newResources });
+  };
+
+  const deleteResource = (resourceId: string) => {
+    const newResources = character.resources.filter(r => r.id !== resourceId);
+    updateCharacter({ ...character, resources: newResources });
+  };
+
+  const updateResourceCount = (resourceId: string, delta: number) => {
+    const resource = character.resources.find(r => r.id === resourceId);
+    if (!resource) return;
+    
+    const newCurrent = Math.min(resource.max, Math.max(0, resource.current + delta));
+    const newResources = character.resources.map(r =>
+      r.id === resourceId ? { ...r, current: newCurrent } : r
+    );
+    updateCharacter({ ...character, resources: newResources });
+  };
+
+  const openResourceModal = (resource?: Resource) => {
+    setEditingResource(resource);
+    setShowResourceModal(true);
+  };
+
+  const closeResourceModal = () => {
+    setShowResourceModal(false);
+    setEditingResource(undefined);
+  };
+
+  const openLimbModal = (limb: Limb) => {
+    setSelectedLimb(limb);
+    setShowLimbModal(true);
+  };
+
+  const updateLimb = (updatedLimb: Limb) => {
+    const newLimbs = character.limbs.map(l => l.id === updatedLimb.id ? updatedLimb : l);
+    updateCharacter({ ...character, limbs: newLimbs });
+  };
+
+  const getLimbType = (limbId: string): 'head' | 'arm' | 'leg' | 'torso' => {
+    if (limbId === 'head') return 'head';
+    if (limbId === 'torso') return 'torso';
+    if (limbId.includes('Arm')) return 'arm';
+    return 'leg';
+  };
+
+  const updateArmorClass = (newAC: number, newLimbs: Limb[]) => {
+    updateCharacter({ ...character, armorClass: newAC, limbs: newLimbs });
+  };
+
+  const updatePersonalityField = (field: keyof Character, value: string) => {
+    updateCharacter({ ...character, [field]: value });
+  };
+
+  const saveItem = (item: InventoryItem) => {
+    const existingIndex = character.inventory.findIndex(a => a.id === item.id);
+    let newInventory;
+    
+    if (existingIndex >= 0) {
+      newInventory = [...character.inventory];
+      newInventory[existingIndex] = item;
+    } else {
+      newInventory = [...character.inventory, item];
+    }
+    
+    updateCharacter({ ...character, inventory: newInventory });
+  };
+
+  const deleteItem = (itemId: string) => {
+    const newInventory = character.inventory.filter(a => a.id !== itemId);
+    updateCharacter({ ...character, inventory: newInventory });
+  };
+
+  const equipItem = (itemId: string) => {
+    const item = character.inventory.find(a => a.id === itemId);
+    if (!item) return;
+
+    let newAttacks = [...character.attacks];
+
+    if (item.type === 'armor') {
+      // Снимаем всю экипированную броню
+      const newInventory = character.inventory.map(a => ({
+        ...a,
+        equipped: a.type === 'armor' && a.id === itemId,
+      }));
+
+      // Применяем КБ брони
+      const dexMod = Math.floor(((character.attributes.dexterity || 10) - 10) / 2);
+      let calculatedAC = item.baseAC || 10;
+      
+      if (item.dexModifier) {
+        const appliedDexMod = (item.maxDexModifier !== null && item.maxDexModifier !== undefined)
+          ? Math.min(dexMod, item.maxDexModifier)
+          : dexMod;
+        calculatedAC += appliedDexMod;
+      }
+
+      // Применяем КБ конечностей
+      const newLimbs = character.limbs.map(limb => ({
+        ...limb,
+        ac: item.limbACs?.[limb.id as keyof typeof item.limbACs] || 0,
+      }));
+
+      updateCharacter({
+        ...character,
+        armorClass: calculatedAC,
+        limbs: newLimbs,
+        inventory: newInventory,
+      });
+    } else if (item.type === 'weapon') {
+      // Экипируем оружие
+      const newInventory = character.inventory.map(a => 
+        a.id === itemId ? { ...a, equipped: true } : a
+      );
+      
+      // Добавляем атаку от оружия
+      const weaponAttack: Attack = {
+        id: `attack_weapon_${itemId}`,
+        name: item.name,
+        damage: item.damage || '1d6',
+        damageType: item.damageType || 'Физический',
+        hitBonus: 0,
+        actionType: 'action',
+        weaponId: itemId,
+        usesAmmunition: item.weaponClass === 'ranged',
+        ammunitionCost: 1,
+        attribute: item.weaponClass === 'melee' ? 'strength' : 'dexterity',
+      };
+      newAttacks.push(weaponAttack);
+      
+      updateCharacter({ ...character, inventory: newInventory, attacks: newAttacks });
+    } else {
+      // Для предметов просто меняем статус
+      const newInventory = character.inventory.map(a => 
+        a.id === itemId ? { ...a, equipped: true } : a
+      );
+      updateCharacter({ ...character, inventory: newInventory });
+    }
+  };
+
+  const unequipItem = (itemId: string) => {
+    const item = character.inventory.find(a => a.id === itemId);
+    if (!item) return;
+
+    const newInventory = character.inventory.map(a => ({
+      ...a,
+      equipped: a.id === itemId ? false : a.equipped,
+    }));
+
+    if (item.type === 'armor') {
+      // Сбрасываем КБ на базовый (10 + ловкость)
+      const dexMod = Math.floor(((character.attributes.dexterity || 10) - 10) / 2);
+      const baseAC = 10 + dexMod;
+
+      // Сбрасываем КБ конечностей на 0
+      const newLimbs = character.limbs.map(limb => ({
+        ...limb,
+        ac: 0,
+      }));
+
+      updateCharacter({
+        ...character,
+        armorClass: baseAC,
+        limbs: newLimbs,
+        inventory: newInventory,
+      });
+    } else if (item.type === 'weapon') {
+      // Удаляем атаку от оружия
+      const newAttacks = character.attacks.filter(attack => attack.weaponId !== itemId);
+      updateCharacter({ ...character, inventory: newInventory, attacks: newAttacks });
+    } else {
+      updateCharacter({ ...character, inventory: newInventory });
+    }
+  };
+
+  const openItemModal = (item?: InventoryItem) => {
+    setEditingItem(item);
+    setShowItemModal(true);
+  };
+
+  const closeItemModal = () => {
+    setShowItemModal(false);
+    setEditingItem(undefined);
+  };
+
+  const updateInventoryNotes = (notes: string) => {
+    updateCharacter({ ...character, inventoryNotes: notes });
+  };
+
+  const updateAttacksNotes = (notes: string) => {
+    updateCharacter({ ...character, attacksNotes: notes });
+  };
+
+  const updateEquipmentNotes = (notes: string) => {
+    updateCharacter({ ...character, equipmentNotes: notes });
+  };
+
+  const updateAbilitiesNotes = (notes: string) => {
+    updateCharacter({ ...character, abilitiesNotes: notes });
+  };
+
+  const updateItemQuantity = (itemId: string, delta: number) => {
+    const newInventory = character.inventory.map(item => {
+      if (item.id === itemId && (item.type === 'item' || item.type === 'ammunition')) {
+        return { ...item, quantity: Math.max(0, (item.quantity || 1) + delta) };
+      }
+      return item;
+    });
+    updateCharacter({ ...character, inventory: newInventory });
+  };
+
+  const updateAmmunitionQuantity = (itemId: string, delta: number) => {
+    const newInventory = character.inventory.map(item => {
+      if (item.id === itemId && item.type === 'ammunition') {
+        return { ...item, quantity: Math.max(0, (item.quantity || 0) + delta) };
+      }
+      return item;
+    });
+    updateCharacter({ ...character, inventory: newInventory });
+  };
+
+  const getItemIcon = (type: string) => {
+    switch (type) {
+      case 'armor': return Shield;
+      case 'weapon': return Sword;
+      case 'ammunition': return Zap;
+      default: return Box;
+    }
+  };
+
+  const getItemTypeLabel = (type: string) => {
+    switch (type) {
+      case 'armor': return 'Броня';
+      case 'weapon': return 'Оружие';
+      case 'ammunition': return 'Боеприпас';
+      default: return 'Предмет';
+    }
+  };
+
+  const getActionTypeLabel = (actionType: string) => {
+    switch (actionType) {
+      case 'action': return 'Основное';
+      case 'bonus': return 'Бонусное';
+      case 'reaction': return 'Реакция';
+      default: return 'Основное';
+    }
+  };
+
+  const getActionTypeColor = (actionType: string) => {
+    switch (actionType) {
+      case 'action': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+      case 'bonus': return 'bg-green-500/20 text-green-400 border-green-500/30';
+      case 'reaction': return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
+      default: return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+    }
+  };
+
+  const saveAttack = (attack: Attack) => {
+    const existingIndex = character.attacks.findIndex(a => a.id === attack.id);
+    let newAttacks;
+    
+    if (existingIndex >= 0) {
+      newAttacks = [...character.attacks];
+      newAttacks[existingIndex] = attack;
+    } else {
+      newAttacks = [...character.attacks, attack];
+    }
+    
+    updateCharacter({ ...character, attacks: newAttacks });
+  };
+
+  const deleteAttack = (attackId: string) => {
+    const newAttacks = character.attacks.filter(a => a.id !== attackId);
+    updateCharacter({ ...character, attacks: newAttacks });
+  };
+
+  const openAttackModal = (attack?: Attack) => {
+    setEditingAttack(attack);
+    setShowAttackModal(true);
+  };
+
+  const closeAttackModal = () => {
+    setShowAttackModal(false);
+    setEditingAttack(undefined);
+  };
+
+  const saveAbility = (ability: Ability) => {
+    const existingIndex = character.abilities.findIndex(a => a.id === ability.id);
+    let newAbilities;
+    
+    if (existingIndex >= 0) {
+      newAbilities = [...character.abilities];
+      newAbilities[existingIndex] = ability;
+    } else {
+      newAbilities = [...character.abilities, ability];
+    }
+    
+    updateCharacter({ ...character, abilities: newAbilities });
+  };
+
+  const deleteAbility = (abilityId: string) => {
+    const newAbilities = character.abilities.filter(a => a.id !== abilityId);
+    updateCharacter({ ...character, abilities: newAbilities });
+  };
+
+  const openAbilityModal = (ability?: Ability) => {
+    setEditingAbility(ability);
+    setShowAbilityModal(true);
+  };
+
+  const closeAbilityModal = () => {
+    setShowAbilityModal(false);
+    setEditingAbility(undefined);
+  };
+
+  const openAttackView = (attack: Attack) => {
+    setViewingAttack(attack);
+    setShowAttackViewModal(true);
+  };
+
+  const openAbilityView = (ability: Ability) => {
+    setViewingAbility(ability);
+    setShowAbilityViewModal(true);
+  };
+
+  const openItemView = (item: InventoryItem) => {
+    setViewingItem(item);
+    setShowItemViewModal(true);
+  };
+
+  const openResourceView = (resource: Resource) => {
+    setViewingResource(resource);
+    setShowResourceViewModal(true);
+  };
+
+  const toggleSkillProficiency = (skillId: string) => {
+    const updatedSkills = character.skills.map(skill =>
+      skill.id === skillId
+        ? { ...skill, proficient: !skill.proficient, expertise: false }
+        : skill
+    );
+    updateCharacter({ ...character, skills: updatedSkills });
+  };
+
+  const toggleSkillExpertise = (skillId: string) => {
+    const skill = character.skills.find(s => s.id === skillId);
+    if (!skill?.proficient) return;
+    
+    const updatedSkills = character.skills.map(s =>
+      s.id === skillId
+        ? { ...s, expertise: !s.expertise }
+        : s
+    );
+    updateCharacter({ ...character, skills: updatedSkills });
+  };
+
+  const updateAttributeValue = (attrId: string, newValue: number, newBonus: number) => {
+    updateCharacter({
+      ...character,
+      attributes: {
+        ...character.attributes,
+        [attrId]: newValue,
+      },
+      attributeBonuses: {
+        ...character.attributeBonuses,
+        [attrId]: newBonus,
+      },
+    });
+  };
+
+  const toggleSavingThrowProficiency = (attrId: string) => {
+    const currentProficiencies = character.savingThrowProficiencies || [];
+    const newProficiencies = currentProficiencies.includes(attrId)
+      ? currentProficiencies.filter(id => id !== attrId)
+      : [...currentProficiencies, attrId];
+    
+    updateCharacter({
+      ...character,
+      savingThrowProficiencies: newProficiencies,
+    });
+  };
+  
+  return (
+    <div className="min-h-screen p-8">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="max-w-[1600px] mx-auto"
+      >
+        {/* Header */}
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex items-center gap-4">
+            <div>
+              <h1 className="text-3xl font-bold">{character.name}</h1>
+              <p className="text-gray-400">
+                {race?.name} • {charClass?.name} {selectedSubclass && `(${selectedSubclass.name})`}
+              </p>
+            </div>
+            
+            {/* Resources & Ammunition in Header */}
+            {character.resources && character.resources.length > 0 && (
+              <div className="flex gap-2 ml-6">
+                {character.resources.map((resource) => (
+                  <div
+                    key={resource.id}
+                    onClick={() => openResourceView(resource)}
+                    className="relative group cursor-pointer"
+                  >
+                    <div className="w-12 h-12 bg-dark-bg border border-dark-border rounded-xl flex items-center justify-center hover:border-blue-500 transition-all">
+                      {getLucideIcon(resource.iconName, { size: 24, className: 'text-blue-400' })}
+                      <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center text-xs font-bold">
+                        {resource.current}
+                      </div>
+                    </div>
+                    {/* Tooltip */}
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-2 bg-dark-card border border-dark-border rounded-lg text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                      {resource.name}: {resource.current}/{resource.max}
+                    </div>
+                  </div>
+                ))}
+                
+                {/* Ammunition Button */}
+                <div
+                  onClick={() => setShowAmmunitionModal(true)}
+                  className="relative group cursor-pointer"
+                >
+                  <div className="w-12 h-12 bg-dark-bg border border-dark-border rounded-xl flex items-center justify-center hover:border-orange-500 transition-all">
+                    <Zap className="w-6 h-6 text-orange-400" />
+                  </div>
+                  {/* Tooltip */}
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-2 bg-dark-card border border-dark-border rounded-lg text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                    Боеприпасы
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <div className="flex gap-3">
+            <button
+              onClick={exportToJSON}
+              className="px-4 py-2 bg-dark-card border border-dark-border rounded-xl hover:bg-dark-hover transition-all text-sm"
+            >
+              JSON
+            </button>
+            <button
+              onClick={async () => await exportToPDF(character)}
+              className="px-4 py-2 bg-dark-card border border-dark-border rounded-xl hover:bg-dark-hover transition-all text-sm"
+            >
+              PDF
+            </button>
+            <button
+              onClick={clearCharacter}
+              className="px-4 py-2 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl hover:bg-red-500/20 transition-all text-sm"
+            >
+              Новый
+            </button>
+          </div>
+        </div>
+
+        {/* Level, XP, Speed, Sanity and Health */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="bg-dark-card rounded-2xl p-3 border border-dark-border mb-6"
+        >
+          {/* Health Bar - Top */}
+          <div className="mb-3 pb-3 border-b border-dark-border">
+            <div className="flex justify-between items-center mb-1.5">
+              <div className="text-sm text-gray-400">
+                Здоровье: 
+                <button 
+                  onClick={() => setShowHealthModal(true)}
+                  className="ml-2 font-semibold hover:text-white transition-colors cursor-pointer"
+                >
+                  <span className={isDying ? 'text-red-500' : 'text-white'}>
+                    {character.currentHP}
+                  </span>
+                  {character.tempHP > 0 && <span className="text-blue-400"> +{character.tempHP}</span>}
+                  <span className="text-gray-400"> / {getTotalMaxHP()}</span>
+                </button>
+                {isDying && <span className="ml-2 text-red-500 font-bold">БЕЗ СОЗНАНИЯ!</span>}
+              </div>
+            </div>
+            <div 
+              onClick={() => setShowHealthModal(true)}
+              className={`h-4 bg-dark-bg rounded-full overflow-hidden border cursor-pointer hover:border-red-500/50 transition-all relative ${
+                isDying ? 'border-red-500' : 'border-dark-border'
+              }`}
+            >
+              {/* Current HP Layer */}
+              <div
+                className={`h-full absolute left-0 transition-all duration-300 ${
+                  isDying 
+                    ? 'bg-gradient-to-r from-red-600 to-red-800 animate-pulse' 
+                    : 'bg-gradient-to-r from-red-500 to-pink-500'
+                }`}
+                style={{ 
+                  width: `${Math.min((character.currentHP / getTotalMaxHP()) * 100, 100)}%`
+                }}
+              />
+              {/* Temp HP Layer */}
+              {character.tempHP > 0 && (
+                <div
+                  className="h-full absolute transition-all duration-300 bg-gradient-to-r from-blue-400 to-cyan-500"
+                  style={{ 
+                    left: `${Math.min((character.currentHP / getTotalMaxHP()) * 100, 100)}%`,
+                    width: `${Math.min((character.tempHP / getTotalMaxHP()) * 100, 100)}%` 
+                  }}
+                />
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Stats */}
+            <div className="flex items-center gap-4">
+            <div>
+              <div className="text-sm text-gray-400">Уровень:</div>
+              <div className="text-3xl font-bold">{character.level}</div>
+            </div>
+
+            <div>
+              <div className="text-sm text-gray-400 text-center">Бонус владения:</div>
+              <div className="w-20 bg-dark-bg border border-dark-border rounded-lg px-2 py-1 text-2xl font-bold text-center text-blue-400">
+                +{character.proficiencyBonus}
+              </div>
+            </div>
+
+            <div>
+              <div className="text-sm text-gray-400 text-center">КБ:</div>
+              <button
+                onClick={() => setShowACModal(true)}
+                className="w-20 bg-dark-bg border border-dark-border rounded-lg px-2 py-1 text-2xl font-bold text-center hover:border-blue-500 transition-all"
+              >
+                {character.armorClass}
+              </button>
+            </div>
+
+              <div>
+                <div className="text-sm text-gray-400 text-center mb-1">Скорость:</div>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => updateSpeed(Math.max(0, character.speed - 5))}
+                    className="w-8 h-8 bg-dark-bg border border-dark-border rounded-lg hover:bg-dark-hover transition-all text-lg font-bold"
+                  >
+                    −
+                  </button>
+                  <input
+                    type="number"
+                    value={character.speed}
+                    onChange={(e) => updateSpeed(parseInt(e.target.value) || 0)}
+                    className="w-16 bg-dark-bg border border-dark-border rounded-lg px-2 py-1 text-xl font-bold text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button
+                    onClick={() => updateSpeed(character.speed + 5)}
+                    className="w-8 h-8 bg-dark-bg border border-dark-border rounded-lg hover:bg-dark-hover transition-all text-lg font-bold"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Sanity Bar */}
+            <div>
+              <div className="flex justify-between items-center mb-1.5">
+                <div className="text-sm text-gray-400">
+                  Рассудок: 
+                  <button 
+                    onClick={() => setShowSanityModal(true)}
+                    className="ml-2 font-semibold hover:text-white transition-colors cursor-pointer"
+                  >
+                    <span className={`font-semibold ${isInsane ? 'text-red-500' : 'text-white'}`}>
+                      {character.sanity}
+                    </span>
+                    <span className="text-gray-400"> / {getMaxSanity()}</span>
+                  </button>
+                  {isInsane && <span className="ml-2 text-red-500 font-bold">БЕЗУМИЕ!</span>}
+                </div>
+              </div>
+              <div 
+                onClick={() => setShowSanityModal(true)}
+                className={`h-4 bg-dark-bg rounded-full overflow-hidden border cursor-pointer hover:border-purple-500/50 transition-all ${
+                  isInsane ? 'border-red-500' : 'border-dark-border'
+                }`}
+              >
+                <div
+                  className={`h-full transition-all duration-300 ${
+                    isInsane 
+                      ? 'bg-gradient-to-r from-red-600 to-red-800 animate-pulse' 
+                      : 'bg-gradient-to-r from-purple-500 to-blue-500'
+                  }`}
+                  style={{ width: `${Math.min((character.sanity / getMaxSanity()) * 100, 100)}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* XP Bar */}
+          <div className="mt-3 pt-3 border-t border-dark-border">
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <div className="flex justify-between items-center mb-1.5">
+                  <div className="text-sm text-gray-400">
+                    Опыт: <span className="text-white font-semibold">{character.experience}</span> / {nextLevelXP}
+                  </div>
+                  {canLevelUp && (
+                    <button
+                      onClick={levelUp}
+                      className="px-3 py-1 bg-green-500 text-white rounded-lg text-sm font-semibold hover:bg-green-600 transition-all animate-pulse"
+                    >
+                      Повысить уровень!
+                    </button>
+                  )}
+                </div>
+                <div className="h-3 bg-dark-bg rounded-full overflow-hidden border border-dark-border">
+                  <div
+                    className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-300"
+                    style={{ width: `${Math.min(xpProgress, 100)}%` }}
+                  />
+                </div>
+              </div>
+              
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  value={xpInput}
+                  onChange={(e) => setXpInput(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && addXP()}
+                  placeholder="XP"
+                  className="w-24 bg-dark-bg border border-dark-border rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  onClick={addXP}
+                  className="w-8 h-8 bg-green-500/20 border border-green-500/50 text-green-400 rounded-lg hover:bg-green-500/30 transition-all text-lg font-bold flex items-center justify-center"
+                >
+                  +
+                </button>
+                <button
+                  onClick={() => {
+                    const amount = parseInt(xpInput);
+                    if (!isNaN(amount) && amount !== 0) {
+                      const newXP = Math.max(0, character.experience - Math.abs(amount));
+                      updateCharacter({ ...character, experience: newXP });
+                      setXpInput('');
+                    }
+                  }}
+                  className="w-8 h-8 bg-red-500/20 border border-red-500/50 text-red-400 rounded-lg hover:bg-red-500/30 transition-all text-lg font-bold flex items-center justify-center"
+                >
+                  −
+                </button>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:items-stretch">
+          {/* Left Side - Attributes with Skills */}
+          <div className="space-y-4 flex flex-col">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {ATTRIBUTES_LIST.map((attr, index) => {
+                const value = character.attributes[attr.id] || 10;
+                const modifier = getModifier(attr.id);
+                const savingThrow = getSavingThrowModifier(attr.id);
+                const isProficient = character.savingThrowProficiencies?.includes(attr.id);
+                
+                // Get skills for this attribute
+                const attrSkills = character.skills?.filter(s => s.attribute === attr.id) || [];
+                
+                return (
+                  <motion.div
+                    key={attr.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="bg-dark-card rounded-xl p-3 border border-dark-border"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex-1">
+                        <div className="text-sm font-bold uppercase text-gray-300">{attr.name}</div>
+                        <div className="flex gap-2 mt-1">
+                          <div className="flex-1 bg-dark-bg rounded-lg p-1.5 text-center">
+                            <div className="text-xs text-gray-400">Провер.</div>
+                            <div className="text-lg font-bold">{modifier}</div>
+                          </div>
+                          <div className={`flex-1 rounded-lg p-1.5 text-center ${
+                            isProficient ? 'bg-blue-500/20 border border-blue-500/50' : 'bg-dark-bg'
+                          }`}>
+                            <div className="text-xs text-gray-400">Спасбр.</div>
+                            <div className={`text-lg font-bold ${isProficient ? 'text-blue-400' : ''}`}>
+                              {savingThrow}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setSelectedAttribute(attr.id)}
+                        className="text-4xl font-bold ml-2 hover:text-blue-400 transition-colors cursor-pointer"
+                      >
+                        {value}
+                      </button>
+                    </div>
+                    
+                    {/* Skills for this attribute */}
+                    {attrSkills.length > 0 && (
+                      <div className="border-t border-dark-border pt-2 mt-2">
+                        <div className="space-y-1">
+                          {attrSkills.map((skill) => {
+                            const skillInfo = SKILLS_LIST.find(s => s.id === skill.id);
+                            if (!skillInfo) return null;
+                            
+                            const skillMod = getSkillModifier(skill.id);
+                            const isProficient = skill.proficient;
+                            const isExpertise = skill.expertise;
+                            
+                            return (
+                              <div
+                                key={skill.id}
+                                className={`flex items-center justify-between p-1.5 rounded-lg cursor-pointer transition-all ${
+                                  isProficient ? 'bg-blue-500/10 hover:bg-blue-500/20' : 'bg-dark-bg hover:bg-dark-hover'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 flex-1">
+                                  <button
+                                    onClick={() => toggleSkillProficiency(skill.id)}
+                                    className={`w-4 h-4 rounded border-2 transition-all flex-shrink-0 ${
+                                      isProficient 
+                                        ? 'bg-blue-500 border-blue-500' 
+                                        : 'border-dark-border hover:border-blue-500'
+                                    }`}
+                                  >
+                                    {isProficient && (
+                                      <svg className="w-full h-full text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                      </svg>
+                                    )}
+                                  </button>
+                                  
+                                  <button
+                                    onClick={() => toggleSkillExpertise(skill.id)}
+                                    disabled={!isProficient}
+                                    className={`w-4 h-4 rounded-full border-2 transition-all flex-shrink-0 ${
+                                      isExpertise 
+                                        ? 'bg-purple-500 border-purple-500' 
+                                        : isProficient 
+                                        ? 'border-dark-border hover:border-purple-500' 
+                                        : 'border-dark-border opacity-30 cursor-not-allowed'
+                                    }`}
+                                  >
+                                    {isExpertise && (
+                                      <div className="w-full h-full flex items-center justify-center text-white text-xs font-bold">
+                                        E
+                                      </div>
+                                    )}
+                                  </button>
+                                  
+                                  <span className={`text-xs ${isProficient ? 'font-semibold' : 'text-gray-400'}`}>
+                                    {skillInfo.name}
+                                  </span>
+                                </div>
+                                <span className="font-mono font-bold text-sm ml-2">{skillMod}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </motion.div>
+                );
+              })}
+
+            </div>
+          </div>
+
+          {/* Right Side - Tabs */}
+          <div className="flex flex-col">
+            {/* Tab Navigation */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="flex gap-2 bg-dark-card rounded-xl p-2 border border-dark-border"
+            >
+              <button
+                onClick={() => setActiveTab('personality')}
+                className={`flex-1 px-2 py-2 rounded-lg font-semibold transition-all text-xs ${
+                  activeTab === 'personality'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-dark-bg text-gray-400 hover:text-white'
+                }`}
+              >
+                Личность
+              </button>
+              <button
+                onClick={() => setActiveTab('health')}
+                className={`flex-1 px-2 py-2 rounded-lg font-semibold transition-all text-xs ${
+                  activeTab === 'health'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-dark-bg text-gray-400 hover:text-white'
+                }`}
+              >
+                Здоровье
+              </button>
+              <button
+                onClick={() => setActiveTab('abilities')}
+                className={`flex-1 px-2 py-2 rounded-lg font-semibold transition-all text-xs ${
+                  activeTab === 'abilities'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-dark-bg text-gray-400 hover:text-white'
+                }`}
+              >
+                Способности
+              </button>
+              <button
+                onClick={() => setActiveTab('attacks')}
+                className={`flex-1 px-2 py-2 rounded-lg font-semibold transition-all text-xs ${
+                  activeTab === 'attacks'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-dark-bg text-gray-400 hover:text-white'
+                }`}
+              >
+                Атаки
+              </button>
+              <button
+                onClick={() => setActiveTab('equipment')}
+                className={`flex-1 px-2 py-2 rounded-lg font-semibold transition-all text-xs ${
+                  activeTab === 'equipment'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-dark-bg text-gray-400 hover:text-white'
+                }`}
+              >
+                Снаряжение
+              </button>
+              <button
+                onClick={() => setActiveTab('inventory')}
+                className={`flex-1 px-2 py-2 rounded-lg font-semibold transition-all text-xs ${
+                  activeTab === 'inventory'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-dark-bg text-gray-400 hover:text-white'
+                }`}
+              >
+                Инвентарь
+              </button>
+            </motion.div>
+
+            {/* Tab Content */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-dark-card rounded-xl border border-dark-border overflow-hidden mt-4 flex flex-col"
+              style={{ minHeight: '600px', maxHeight: '800px' }}
+            >
+              <div className="flex-1 overflow-y-auto p-6">
+                {activeTab === 'personality' && (
+                  <div>
+                    <h3 className="text-xl font-bold mb-6">Личность</h3>
+                    
+                    {/* Character Info Card */}
+                    <div className="bg-gradient-to-br from-dark-bg to-dark-card border-2 border-dark-border rounded-2xl p-6 mb-8 shadow-lg">
+                      {/* Name - prominently displayed */}
+                      <div className="mb-6 pb-6 border-b border-dark-border">
+                        <div className="text-xs text-gray-500 uppercase tracking-wider mb-2 font-semibold">Имя персонажа</div>
+                        <div className="text-3xl font-bold tracking-tight">{character.name}</div>
+                      </div>
+                      
+                      {/* Race, Class, Subclass in a clean grid */}
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <div className="text-xs text-gray-500 uppercase tracking-wider mb-2 font-semibold">Раса</div>
+                          <div className="text-lg font-bold text-gray-200">{race?.name}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500 uppercase tracking-wider mb-2 font-semibold">Класс</div>
+                          <div className="text-lg font-bold text-gray-200">{charClass?.name}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500 uppercase tracking-wider mb-2 font-semibold">Подкласс</div>
+                          <div className="text-lg font-bold text-gray-200">{selectedSubclass?.name || '—'}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Personality Fields - organized in sections */}
+                    <div className="space-y-6">
+                      {/* Physical & Background Section */}
+                      <div className="space-y-4">
+                        <h4 className="text-lg font-bold text-gray-300 border-b border-dark-border pb-2">Физическое описание и история</h4>
+                        
+                        <div>
+                          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Внешность</label>
+                          <textarea
+                            value={character.appearance || ''}
+                            onChange={(e) => updatePersonalityField('appearance', e.target.value)}
+                            rows={4}
+                            className="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                            placeholder="Опишите внешний вид персонажа..."
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Предыстория</label>
+                          <textarea
+                            value={character.backstory || ''}
+                            onChange={(e) => updatePersonalityField('backstory', e.target.value)}
+                            rows={6}
+                            className="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                            placeholder="Расскажите историю персонажа..."
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Мировоззрение</label>
+                          <input
+                            type="text"
+                            value={character.alignment || ''}
+                            onChange={(e) => updatePersonalityField('alignment', e.target.value)}
+                            className="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Например: Законно-доброе, Хаотично-нейтральное..."
+                          />
+                        </div>
+                      </div>
+
+                      {/* Character Traits Section */}
+                      <div className="space-y-4">
+                        <h4 className="text-lg font-bold text-gray-300 border-b border-dark-border pb-2">Характер</h4>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Черты характера</label>
+                            <textarea
+                              value={character.personalityTraits || ''}
+                              onChange={(e) => updatePersonalityField('personalityTraits', e.target.value)}
+                              rows={4}
+                              className="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                              placeholder="Опишите характер и манеры..."
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Идеалы</label>
+                            <textarea
+                              value={character.ideals || ''}
+                              onChange={(e) => updatePersonalityField('ideals', e.target.value)}
+                              rows={4}
+                              className="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                              placeholder="Во что верит персонаж..."
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Привязанности</label>
+                            <textarea
+                              value={character.bonds || ''}
+                              onChange={(e) => updatePersonalityField('bonds', e.target.value)}
+                              rows={4}
+                              className="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                              placeholder="Люди, места или вещи..."
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Слабости</label>
+                            <textarea
+                              value={character.flaws || ''}
+                              onChange={(e) => updatePersonalityField('flaws', e.target.value)}
+                              rows={4}
+                              className="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                              placeholder="Недостатки и уязвимости..."
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Connections & Skills Section */}
+                      <div className="space-y-4">
+                        <h4 className="text-lg font-bold text-gray-300 border-b border-dark-border pb-2">Связи и навыки</h4>
+                        
+                        <div>
+                          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Союзники и организации</label>
+                          <textarea
+                            value={character.alliesAndOrganizations || ''}
+                            onChange={(e) => updatePersonalityField('alliesAndOrganizations', e.target.value)}
+                            rows={4}
+                            className="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                            placeholder="Союзники, друзья, организации..."
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Владения и языки</label>
+                          <textarea
+                            value={character.languagesAndProficiencies || ''}
+                            onChange={(e) => updateLanguagesAndProficiencies(e.target.value)}
+                            rows={4}
+                            className="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                            placeholder="Доспехи, оружие, языки..."
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'health' && (
+                  <div>
+                    <h3 className="text-xl font-bold mb-6">Здоровье конечностей</h3>
+                    
+                    {/* Body Diagram */}
+                    <div className="flex justify-center mb-6">
+                      <div className="relative" style={{ width: '300px', height: '450px' }}>
+                        {/* SVG Body */}
+                        <svg viewBox="0 0 300 450" className="absolute inset-0">
+                          {/* Head */}
+                          <ellipse cx="150" cy="50" rx="32" ry="40" className="fill-dark-bg stroke-dark-border" strokeWidth="2" />
+                          <circle cx="150" cy="45" r="28" className="fill-dark-bg stroke-dark-border" strokeWidth="1.5" />
+                          
+                          {/* Neck */}
+                          <rect x="140" y="85" width="20" height="15" className="fill-dark-bg stroke-dark-border" strokeWidth="1.5" />
+                          
+                          {/* Torso - более анатомичный */}
+                          <path 
+                            d="M 125 100 Q 115 130 118 180 L 118 200 Q 120 220 135 225 L 165 225 Q 180 220 182 200 L 182 180 Q 185 130 175 100 Z" 
+                            className="fill-dark-bg stroke-dark-border" 
+                            strokeWidth="2" 
+                          />
+                          
+                          {/* Shoulders */}
+                          <ellipse cx="118" cy="105" rx="18" ry="12" className="fill-dark-bg stroke-dark-border" strokeWidth="1.5" />
+                          <ellipse cx="182" cy="105" rx="18" ry="12" className="fill-dark-bg stroke-dark-border" strokeWidth="1.5" />
+                          
+                          {/* Left Arm */}
+                          <path 
+                            d="M 100 105 Q 85 110 75 130 Q 70 145 72 160 L 75 165"
+                            className="fill-none stroke-dark-border" 
+                            strokeWidth="16" 
+                            strokeLinecap="round"
+                          />
+                          
+                          {/* Right Arm */}
+                          <path 
+                            d="M 200 105 Q 215 110 225 130 Q 230 145 228 160 L 225 165"
+                            className="fill-none stroke-dark-border" 
+                            strokeWidth="16" 
+                            strokeLinecap="round"
+                          />
+                          
+                          {/* Left Leg */}
+                          <path 
+                            d="M 135 225 L 133 280 Q 132 320 130 360 L 128 410"
+                            className="fill-none stroke-dark-border" 
+                            strokeWidth="22" 
+                            strokeLinecap="round"
+                          />
+                          
+                          {/* Right Leg */}
+                          <path 
+                            d="M 165 225 L 167 280 Q 168 320 170 360 L 172 410"
+                            className="fill-none stroke-dark-border" 
+                            strokeWidth="22" 
+                            strokeLinecap="round"
+                          />
+                        </svg>
+
+                        {/* Clickable Limbs */}
+                        {character.limbs && character.limbs.map((limb) => {
+                          const injuryLevel = getLimbInjuryLevel(limb.currentHP);
+                          const getColor = () => {
+                            switch (injuryLevel) {
+                              case 'destroyed': return 'bg-red-600/90 border-red-500';
+                              case 'severe': return 'bg-orange-500/90 border-orange-400';
+                              case 'light': return 'bg-yellow-500/90 border-yellow-400';
+                              default: return 'bg-green-500/90 border-green-400';
+                            }
+                          };
+
+                          const getPosition = () => {
+                            switch (limb.id) {
+                              case 'head': return { top: '25px', left: '50%', transform: 'translateX(-50%)', zIndex: 10 };
+                              case 'torso': return { top: '150px', left: '50%', transform: 'translateX(-50%)', zIndex: 10 };
+                              case 'leftArm': return { top: '130px', left: '45px', zIndex: 10 };
+                              case 'rightArm': return { top: '130px', right: '45px', zIndex: 10 };
+                              case 'leftLeg': return { top: '300px', left: '95px', zIndex: 10 };
+                              case 'rightLeg': return { top: '300px', right: '95px', zIndex: 10 };
+                              default: return {};
+                            }
+                          };
+
+                          return (
+                            <button
+                              key={limb.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openLimbModal(limb);
+                              }}
+                              className={`absolute px-3 py-1.5 rounded-lg border-2 ${getColor()} hover:scale-110 transition-all cursor-pointer text-sm font-bold shadow-lg`}
+                              style={getPosition()}
+                            >
+                              {limb.currentHP}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Equipped Armor Indicator */}
+                    {character.inventory && character.inventory.find(i => i.equipped && i.type === 'armor') && (
+                      <div className="mb-6">
+                        {character.inventory.filter(i => i.equipped && i.type === 'armor').map((armor) => (
+                          <button
+                            key={armor.id}
+                            onClick={() => openItemView(armor)}
+                            className="w-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border-2 border-blue-500/50 rounded-xl p-4 hover:border-blue-500 transition-all group"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                                  <Shield className="w-6 h-6 text-blue-400" />
+                                </div>
+                                <div className="text-left">
+                                  <div className="text-sm text-blue-400 font-semibold">Экипирована броня</div>
+                                  <div className="font-bold text-lg">{armor.name}</div>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-xs text-gray-400">Базовый КБ</div>
+                                <div className="text-3xl font-bold text-blue-400">{armor.baseAC || 0}</div>
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Limbs List */}
+                    <div className="space-y-2">
+                      {character.limbs && character.limbs.map((limb) => {
+                        const injuryLevel = getLimbInjuryLevel(limb.currentHP);
+                        const getBorderColor = () => {
+                          switch (injuryLevel) {
+                            case 'destroyed': return 'border-red-500';
+                            case 'severe': return 'border-orange-500';
+                            case 'light': return 'border-yellow-500';
+                            default: return 'border-dark-border';
+                          }
+                        };
+
+                        return (
+                          <div
+                            key={limb.id}
+                            onClick={() => openLimbModal(limb)}
+                            className={`bg-dark-bg rounded-lg p-3 border-2 ${getBorderColor()} hover:border-blue-500/50 transition-all cursor-pointer`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="font-bold">{limb.name}</div>
+                                <div className="text-xs text-gray-400">КБ: {limb.ac}</div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-2xl font-bold">{limb.currentHP}</div>
+                                <div className="text-xs text-gray-400">/ {limb.maxHP}</div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'abilities' && (
+                  <div>
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-xl font-bold">Способности</h3>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => openResourceModal()}
+                          className="px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl hover:shadow-lg transition-all font-semibold text-xs"
+                        >
+                          + Ресурс
+                        </button>
+                        <button
+                          onClick={() => openAbilityModal()}
+                          className="px-3 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl hover:shadow-lg transition-all font-semibold text-xs"
+                        >
+                          + Способность
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Resources Section */}
+                    {character.resources && character.resources.length > 0 && (
+                      <>
+                        <div className="mb-4">
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className="h-px flex-1 bg-dark-border"></div>
+                            <span className="text-xs text-gray-400 uppercase font-semibold">Ресурсы</span>
+                            <div className="h-px flex-1 bg-dark-border"></div>
+                          </div>
+                          <div className="space-y-2">
+                            {character.resources.map((resource) => (
+                          <div
+                            key={resource.id}
+                            className="bg-dark-bg rounded-lg p-3 border border-dark-border hover:border-blue-500/50 transition-all"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 bg-dark-card rounded-lg flex items-center justify-center border border-dark-border flex-shrink-0">
+                                {getLucideIcon(resource.iconName, { size: 24, className: 'text-blue-400' })}
+                              </div>
+                              
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between mb-1">
+                                  <h4 className="font-bold truncate">{resource.name}</h4>
+                                  <button
+                                    onClick={() => openResourceModal(resource)}
+                                    className="px-2 py-1 bg-dark-card border border-dark-border rounded text-xs hover:bg-dark-hover transition-all flex-shrink-0"
+                                  >
+                                    Настроить
+                                  </button>
+                                </div>
+                                
+                                {resource.description && (
+                                  <p className="text-xs text-gray-400 mb-2 line-clamp-1">{resource.description}</p>
+                                )}
+                                
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() => updateResourceCount(resource.id, -1)}
+                                    disabled={resource.current <= 0}
+                                    className="w-7 h-7 rounded-lg bg-dark-card border border-dark-border hover:bg-dark-hover disabled:opacity-30 disabled:cursor-not-allowed transition-all font-bold flex-shrink-0"
+                                  >
+                                    −
+                                  </button>
+                                  
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-center mb-1">
+                                      <span className="text-xl font-bold">{resource.current}</span>
+                                      <span className="text-gray-400 text-sm"> / {resource.max}</span>
+                                    </div>
+                                    <div className="h-2 bg-dark-card rounded-full overflow-hidden border border-dark-border">
+                                      <div
+                                        className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-300"
+                                        style={{ width: `${(resource.current / resource.max) * 100}%` }}
+                                      />
+                                    </div>
+                                  </div>
+                                  
+                                  <button
+                                    onClick={() => updateResourceCount(resource.id, 1)}
+                                    disabled={resource.current >= resource.max}
+                                    className="w-7 h-7 rounded-lg bg-dark-card border border-dark-border hover:bg-dark-hover disabled:opacity-30 disabled:cursor-not-allowed transition-all font-bold flex-shrink-0"
+                                  >
+                                    +
+                                  </button>
+                                  
+                                  <button
+                                    onClick={() => {
+                                      const newResources = character.resources.map(r =>
+                                        r.id === resource.id ? { ...r, current: r.max } : r
+                                      );
+                                      updateCharacter({ ...character, resources: newResources });
+                                    }}
+                                    className="px-3 py-1 bg-green-500/20 border border-green-500/50 text-green-400 rounded-lg hover:bg-green-500/30 transition-all text-xs font-semibold flex-shrink-0"
+                                  >
+                                    Восст.
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Abilities Section */}
+                    {character.abilities && character.abilities.length > 0 && (
+                      <>
+                        <div>
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className="h-px flex-1 bg-dark-border"></div>
+                            <span className="text-xs text-gray-400 uppercase font-semibold">Способности</span>
+                            <div className="h-px flex-1 bg-dark-border"></div>
+                          </div>
+                          <div className="space-y-2">
+                            {character.abilities.map((ability) => {
+                              const usedResource = ability.resourceId ? character.resources.find(r => r.id === ability.resourceId) : null;
+                              return (
+                                <div
+                                  key={ability.id}
+                                  onClick={() => openAbilityView(ability)}
+                                  className="bg-dark-bg rounded-lg p-2.5 border border-dark-border hover:border-blue-500/50 transition-all cursor-pointer"
+                                >
+                                  <div className="flex items-center justify-between mb-2">
+                                    <h4 className="font-bold text-sm">{ability.name}</h4>
+                                    <div className="flex items-center gap-2">
+                                      <span className={`px-2 py-0.5 rounded-full text-xs border ${getActionTypeColor(ability.actionType)}`}>
+                                        {getActionTypeLabel(ability.actionType)}
+                                      </span>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); openAbilityModal(ability); }}
+                                        className="px-2 py-1 bg-dark-card border border-dark-border rounded text-xs hover:bg-dark-hover transition-all"
+                                      >
+                                        Настроить
+                                      </button>
+                                    </div>
+                                  </div>
+                                  {ability.description && (
+                                    <p className="text-xs text-gray-400 mb-1.5 break-words overflow-wrap-anywhere line-clamp-2">{ability.description}</p>
+                                  )}
+                                  {usedResource && (
+                                    <div className="text-xs mb-1.5 px-2 py-0.5 bg-purple-500/10 border border-purple-500/30 rounded text-center">
+                                      Тратит: <span className="font-semibold">{ability.resourceCost} {usedResource.name}</span>
+                                    </div>
+                                  )}
+                                  <div className="text-xs p-2 bg-dark-card rounded border border-dark-border">
+                                    <div className="text-gray-400 text-xs mb-0.5">Эффект:</div>
+                                    <div className="text-white text-xs break-words overflow-wrap-anywhere line-clamp-2">{ability.effect}</div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {!character.resources?.length && !character.abilities?.length && (
+                      <div className="text-gray-400 text-center py-12">
+                        <p className="mb-4">Нет ресурсов и способностей</p>
+                        <p className="text-sm">Добавьте ресурсы и способности</p>
+                      </div>
+                    )}
+
+                    {/* Text notes at the end */}
+                    <div className="mt-6">
+                      <div className="text-xs text-gray-400 mb-2 uppercase">Заметки</div>
+                      <textarea
+                        value={character.abilitiesNotes || ''}
+                        onChange={(e) => {
+                          updateAbilitiesNotes(e.target.value);
+                          e.target.style.height = 'auto';
+                          e.target.style.height = e.target.scrollHeight + 'px';
+                        }}
+                        onFocus={(e) => {
+                          e.target.style.height = 'auto';
+                          e.target.style.height = e.target.scrollHeight + 'px';
+                        }}
+                        placeholder="Дополнительные заметки о способностях..."
+                        className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none overflow-hidden"
+                        style={{ minHeight: '60px' }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'attacks' && (
+                  <div>
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-xl font-bold">Атаки</h3>
+                      <button
+                        onClick={() => openAttackModal()}
+                        className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl hover:shadow-lg hover:shadow-blue-500/50 transition-all font-semibold text-sm"
+                      >
+                        + Добавить атаку
+                      </button>
+                    </div>
+
+                    {character.attacks && character.attacks.length > 0 ? (
+                      <>
+                        {/* Weapon Attacks */}
+                        {character.attacks.filter(a => a.weaponId).length > 0 && (
+                          <>
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="h-px flex-1 bg-dark-border"></div>
+                              <span className="text-xs text-gray-400 uppercase font-semibold">Атаки от оружия</span>
+                              <div className="h-px flex-1 bg-dark-border"></div>
+                            </div>
+                            <div className="space-y-2 mb-4">
+                              {character.attacks.filter(a => a.weaponId).map((attack) => (
+                                <div
+                                  key={attack.id}
+                                  onClick={() => openAttackView(attack)}
+                                  className="bg-dark-bg rounded-lg p-2.5 border border-dark-border hover:border-blue-500/50 transition-all cursor-pointer"
+                                >
+                                  <div className="flex items-center justify-between mb-2">
+                                    <h4 className="font-bold text-sm">{attack.name}</h4>
+                                    <div className="flex items-center gap-2">
+                                      <span className={`px-2 py-0.5 rounded-full text-xs border ${getActionTypeColor(attack.actionType)}`}>
+                                        {getActionTypeLabel(attack.actionType)}
+                                      </span>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); openAttackModal(attack); }}
+                                        className="px-2 py-1 bg-dark-card border border-dark-border rounded text-xs hover:bg-dark-hover transition-all"
+                                      >
+                                        Настроить
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <div className="grid grid-cols-3 gap-1.5 text-xs">
+                                    <div className="bg-dark-card rounded px-2 py-1 text-center">
+                                      <div className="text-gray-400 text-xs">Бонус</div>
+                                      <div className="font-bold">
+                                        {attack.hitBonus >= 0 ? '+' : ''}{attack.hitBonus}
+                                      </div>
+                                    </div>
+                                    <div className="bg-dark-card rounded px-2 py-1 text-center">
+                                      <div className="text-gray-400 text-xs">Урон</div>
+                                      <div className="font-bold text-xs">{attack.damage}</div>
+                                    </div>
+                                    <div className="bg-dark-card rounded px-2 py-1 text-center">
+                                      <div className="text-gray-400 text-xs">Тип</div>
+                                      <div className="font-bold text-xs truncate">{attack.damageType}</div>
+                                    </div>
+                                  </div>
+                                  {attack.usesAmmunition && (
+                                    <div className="mt-1.5 text-xs px-2 py-0.5 bg-orange-500/10 border border-orange-500/30 rounded text-center">
+                                      Тратит {attack.ammunitionCost} боеприпас(а)
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Custom Attacks */}
+                        {character.attacks.filter(a => !a.weaponId).length > 0 && (
+                          <>
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="h-px flex-1 bg-dark-border"></div>
+                              <span className="text-xs text-gray-400 uppercase font-semibold">Пользовательские атаки</span>
+                              <div className="h-px flex-1 bg-dark-border"></div>
+                            </div>
+                            <div className="space-y-2">
+                              {character.attacks.filter(a => !a.weaponId).map((attack) => (
+                                <div
+                                  key={attack.id}
+                                  onClick={() => openAttackView(attack)}
+                                  className="bg-dark-bg rounded-lg p-2.5 border border-dark-border hover:border-blue-500/50 transition-all cursor-pointer"
+                                >
+                                  <div className="flex items-center justify-between mb-2">
+                                    <h4 className="font-bold text-sm">{attack.name}</h4>
+                                    <div className="flex items-center gap-2">
+                                      <span className={`px-2 py-0.5 rounded-full text-xs border ${getActionTypeColor(attack.actionType)}`}>
+                                        {getActionTypeLabel(attack.actionType)}
+                                      </span>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); openAttackModal(attack); }}
+                                        className="px-2 py-1 bg-dark-card border border-dark-border rounded text-xs hover:bg-dark-hover transition-all"
+                                      >
+                                        Настроить
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <div className="grid grid-cols-3 gap-1.5 text-xs">
+                                    <div className="bg-dark-card rounded px-2 py-1 text-center">
+                                      <div className="text-gray-400 text-xs">Бонус</div>
+                                      <div className="font-bold">
+                                        {attack.hitBonus >= 0 ? '+' : ''}{attack.hitBonus}
+                                      </div>
+                                    </div>
+                                    <div className="bg-dark-card rounded px-2 py-1 text-center">
+                                      <div className="text-gray-400 text-xs">Урон</div>
+                                      <div className="font-bold text-xs">{attack.damage}</div>
+                                    </div>
+                                    <div className="bg-dark-card rounded px-2 py-1 text-center">
+                                      <div className="text-gray-400 text-xs">Тип</div>
+                                      <div className="font-bold text-xs truncate">{attack.damageType}</div>
+                                    </div>
+                                  </div>
+                                  {attack.usesAmmunition && (
+                                    <div className="mt-1.5 text-xs px-2 py-0.5 bg-orange-500/10 border border-orange-500/30 rounded text-center">
+                                      Тратит {attack.ammunitionCost} боеприпас(а)
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-gray-400 text-center py-12">
+                        <p className="text-xl mb-2">⚔️</p>
+                        <p className="text-sm">Нет атак</p>
+                        <p className="text-xs mt-1">Экипируйте оружие или добавьте атаку</p>
+                      </div>
+                    )}
+
+                    {/* Text notes at the end */}
+                    <div className="mt-6">
+                      <div className="text-xs text-gray-400 mb-2 uppercase">Заметки</div>
+                      <textarea
+                        value={character.attacksNotes || ''}
+                        onChange={(e) => {
+                          updateAttacksNotes(e.target.value);
+                          e.target.style.height = 'auto';
+                          e.target.style.height = e.target.scrollHeight + 'px';
+                        }}
+                        onFocus={(e) => {
+                          e.target.style.height = 'auto';
+                          e.target.style.height = e.target.scrollHeight + 'px';
+                        }}
+                        placeholder="Дополнительные заметки об атаках..."
+                        className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none overflow-hidden"
+                        style={{ minHeight: '60px' }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'equipment' && (
+                  <div>
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-xl font-bold">Снаряжение</h3>
+                      <button
+                        onClick={() => setShowAmmunitionModal(true)}
+                        className="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl hover:shadow-lg transition-all font-semibold text-sm flex items-center gap-2"
+                      >
+                        <Zap className="w-4 h-4" />
+                        Боеприпасы
+                      </button>
+                    </div>
+
+                    {character.inventory && character.inventory.filter(i => i.equipped).length > 0 ? (
+                      <div className="space-y-2">
+                        {character.inventory.filter(i => i.equipped).map((item) => {
+                          const ItemIcon = getItemIcon(item.type);
+                          return (
+                            <div
+                              key={item.id}
+                              className="bg-dark-bg rounded-lg p-3 border-2 border-blue-500/50 bg-blue-500/5"
+                            >
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <ItemIcon className="w-4 h-4 text-blue-400" />
+                                    <span className="px-2 py-0.5 bg-dark-card text-xs rounded">
+                                      {getItemTypeLabel(item.type)}
+                                    </span>
+                                    <h4 className="font-bold">{item.name}</h4>
+                                  </div>
+                                  {item.description && (
+                                    <div className="text-xs text-gray-400 mt-1 break-words overflow-wrap-anywhere">{item.description}</div>
+                                  )}
+                                  {item.type === 'weapon' && (
+                                    <div className="text-xs text-gray-400 mt-1">
+                                      Урон: <span className="text-white font-semibold">{item.damage}</span> • {item.damageType}
+                                      {item.weaponClass === 'ranged' && item.ammunitionType && (
+                                        <> • Боеприпас: {item.ammunitionType}</>
+                                      )}
+                                    </div>
+                                  )}
+                                  {item.type === 'armor' && item.baseAC && (
+                                    <div className="text-xs text-gray-400 mt-1">
+                                      КБ: {item.baseAC}
+                                      {item.dexModifier && (
+                                        <span> + Ловк.{item.maxDexModifier !== null ? ` (макс ${item.maxDexModifier})` : ''}</span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                <button
+                                  onClick={() => unequipItem(item.id)}
+                                  className="px-2 py-1 bg-red-500/20 border border-red-500/50 text-red-400 rounded hover:bg-red-500/30 transition-all text-xs font-semibold"
+                                >
+                                  Снять
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-gray-400 text-center py-12">
+                        <p className="text-xl mb-2">🎒</p>
+                        <p className="text-sm">Нет экипированных предметов</p>
+                        <p className="text-xs mt-1">Экипируйте предметы из инвентаря</p>
+                      </div>
+                    )}
+
+                    {/* Text notes at the end */}
+                    <div className="mt-6">
+                      <div className="text-xs text-gray-400 mb-2 uppercase">Заметки</div>
+                      <textarea
+                        value={character.equipmentNotes || ''}
+                        onChange={(e) => {
+                          updateEquipmentNotes(e.target.value);
+                          e.target.style.height = 'auto';
+                          e.target.style.height = e.target.scrollHeight + 'px';
+                        }}
+                        onFocus={(e) => {
+                          e.target.style.height = 'auto';
+                          e.target.style.height = e.target.scrollHeight + 'px';
+                        }}
+                        placeholder="Дополнительные заметки о снаряжении..."
+                        className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none overflow-hidden"
+                        style={{ minHeight: '60px' }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'inventory' && (
+                  <div>
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-xl font-bold">Инвентарь</h3>
+                      <button
+                        onClick={() => openItemModal()}
+                        className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl hover:shadow-lg hover:shadow-blue-500/50 transition-all font-semibold text-sm"
+                      >
+                        + Добавить предмет
+                      </button>
+                    </div>
+
+                    {/* Sub-tabs for inventory */}
+                    <div className="flex gap-2 mb-4 overflow-x-auto">
+                      {(['all', 'armor', 'weapon', 'item', 'ammunition'] as InventorySubTab[]).map((subTab) => (
+                        <button
+                          key={subTab}
+                          onClick={() => setInventorySubTab(subTab)}
+                          className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all whitespace-nowrap ${
+                            inventorySubTab === subTab
+                              ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
+                              : 'bg-dark-card border border-dark-border text-gray-400 hover:border-blue-500/50'
+                          }`}
+                        >
+                          {subTab === 'all' && 'Все'}
+                          {subTab === 'armor' && 'Броня'}
+                          {subTab === 'weapon' && 'Оружие'}
+                          {subTab === 'item' && 'Предметы'}
+                          {subTab === 'ammunition' && 'Боеприпасы'}
+                        </button>
+                      ))}
+                    </div>
+
+                    {character.inventory && character.inventory.filter(item => 
+                      inventorySubTab === 'all' || item.type === inventorySubTab
+                    ).length > 0 ? (
+                      <div className="space-y-2">
+                        {character.inventory.filter(item => 
+                          inventorySubTab === 'all' || item.type === inventorySubTab
+                        ).map((item) => {
+                          const ItemIcon = getItemIcon(item.type);
+                          return (
+                            <div
+                              key={item.id}
+                              onClick={() => openItemView(item)}
+                              className={`bg-dark-bg rounded-lg p-3 border transition-all cursor-pointer ${
+                                item.equipped ? 'border-blue-500/30 bg-blue-500/5' : 'border-dark-border hover:border-blue-500/50'
+                              }`}
+                            >
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <ItemIcon className="w-4 h-4 text-gray-400" />
+                                    <span className="px-2 py-0.5 bg-dark-card text-xs rounded">
+                                      {getItemTypeLabel(item.type)}
+                                    </span>
+                                    <h4 className="font-bold">{item.name}</h4>
+                                    {item.equipped && (
+                                      <span className="px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full">
+                                        Экип.
+                                      </span>
+                                    )}
+                                    {(item.quantity !== undefined && item.quantity > 1) && (
+                                      <span className="px-2 py-0.5 bg-gray-500/30 text-white text-xs rounded-full">
+                                        x{item.quantity}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {item.description && (
+                                    <div className="text-xs text-gray-400 mt-1 break-words overflow-wrap-anywhere">{item.description}</div>
+                                  )}
+                                  {item.type === 'weapon' && (
+                                    <div className="text-xs text-gray-400 mt-1 break-words">
+                                      Урон: {item.damage} • {item.damageType} • {item.weaponClass === 'melee' ? 'Мили' : 'Огнестрел'}
+                                    </div>
+                                  )}
+                                  {item.type === 'armor' && item.baseAC && (
+                                    <div className="text-xs text-gray-400 mt-1">
+                                      КБ: {item.baseAC}
+                                      {item.dexModifier && (
+                                        <span> + Ловк.{item.maxDexModifier !== null ? ` (макс ${item.maxDexModifier})` : ''}</span>
+                                      )}
+                                    </div>
+                                  )}
+                                  {item.itemClass && (
+                                    <div className="text-xs text-gray-400 mt-1 break-words">
+                                      Класс: {item.itemClass}
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                <div className="flex gap-2 flex-shrink-0">
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); openItemModal(item); }}
+                                    className="px-2 py-1 bg-dark-card border border-dark-border rounded text-xs hover:bg-dark-hover transition-all"
+                                  >
+                                    Изм.
+                                  </button>
+                                  {(item.type === 'armor' || item.type === 'weapon') && (item.equipped ? (
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); unequipItem(item.id); }}
+                                      className="px-2 py-1 bg-red-500/20 border border-red-500/50 text-red-400 rounded hover:bg-red-500/30 transition-all text-xs font-semibold"
+                                    >
+                                      Снять
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); equipItem(item.id); }}
+                                      className="px-2 py-1 bg-green-500/20 border border-green-500/50 text-green-400 rounded hover:bg-green-500/30 transition-all text-xs font-semibold"
+                                    >
+                                      Экип.
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <div className="flex gap-2 text-xs flex-wrap items-center">
+                                <div className="bg-dark-card rounded px-2 py-1">
+                                  <span className="text-gray-400">Вес:</span> <span className="font-bold">{item.weight}</span>
+                                </div>
+                                <div className="bg-dark-card rounded px-2 py-1">
+                                  <span className="text-gray-400">Цена:</span> <span className="font-bold">{item.cost}</span>
+                                </div>
+                                {(item.type === 'item' || item.type === 'ammunition') && item.quantity !== undefined && (
+                                  <div className="flex items-center gap-1 ml-auto">
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); updateItemQuantity(item.id, -1); }}
+                                      className="w-6 h-6 bg-red-500/20 border border-red-500/50 text-red-400 rounded hover:bg-red-500/30 transition-all font-bold text-sm flex items-center justify-center"
+                                    >
+                                      −
+                                    </button>
+                                    <div className="bg-dark-card rounded px-3 py-1 min-w-[50px] text-center">
+                                      <span className="font-bold">{item.quantity}</span>
+                                    </div>
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); updateItemQuantity(item.id, 1); }}
+                                      className="w-6 h-6 bg-green-500/20 border border-green-500/50 text-green-400 rounded hover:bg-green-500/30 transition-all font-bold text-sm flex items-center justify-center"
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-gray-400 text-center py-8">
+                        <p className="text-sm">Нет предметов в инвентаре</p>
+                      </div>
+                    )}
+
+                    {/* Text notes at the end */}
+                    <div className="mt-6">
+                      <div className="text-xs text-gray-400 mb-2 uppercase">Быстрые заметки</div>
+                      <textarea
+                        value={character.inventoryNotes || ''}
+                        onChange={(e) => {
+                          updateInventoryNotes(e.target.value);
+                          e.target.style.height = 'auto';
+                          e.target.style.height = e.target.scrollHeight + 'px';
+                        }}
+                        onFocus={(e) => {
+                          e.target.style.height = 'auto';
+                          e.target.style.height = e.target.scrollHeight + 'px';
+                        }}
+                        placeholder="Список предметов в текстовом виде..."
+                        className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none overflow-hidden"
+                        style={{ minHeight: '60px' }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        </div>
+
+        {/* Attribute Modal */}
+        <AttributeModal
+          isOpen={!!selectedAttribute}
+          onClose={() => setSelectedAttribute(null)}
+          attributeName={selectedAttribute ? ATTRIBUTES_LIST.find(a => a.id === selectedAttribute)?.name || '' : ''}
+          attributeValue={selectedAttribute ? character.attributes[selectedAttribute] || 10 : 10}
+          attributeBonus={selectedAttribute ? character.attributeBonuses?.[selectedAttribute] || 0 : 0}
+          isProficient={selectedAttribute ? character.savingThrowProficiencies?.includes(selectedAttribute) || false : false}
+          proficiencyBonus={character.proficiencyBonus}
+          onUpdateValue={(newValue, newBonus) => {
+            if (selectedAttribute) {
+              updateAttributeValue(selectedAttribute, newValue, newBonus);
+            }
+          }}
+          onToggleProficiency={() => {
+            if (selectedAttribute) {
+              toggleSavingThrowProficiency(selectedAttribute);
+            }
+          }}
+        />
+
+        {/* Health Modal */}
+        <HealthModal
+          isOpen={showHealthModal}
+          onClose={() => setShowHealthModal(false)}
+          currentHP={character.currentHP}
+          maxHP={character.maxHP}
+          tempHP={character.tempHP}
+          maxHPBonus={character.maxHPBonus}
+          onUpdate={updateHealth}
+        />
+
+        {/* Sanity Modal */}
+        <SanityModal
+          isOpen={showSanityModal}
+          onClose={() => setShowSanityModal(false)}
+          currentSanity={character.sanity}
+          maxSanity={getMaxSanity()}
+          onUpdate={updateSanity}
+        />
+
+        {/* Resource Modal */}
+        <ResourceModal
+          isOpen={showResourceModal}
+          onClose={closeResourceModal}
+          resource={editingResource}
+          onSave={saveResource}
+          onDelete={editingResource ? () => deleteResource(editingResource.id) : undefined}
+        />
+
+        {/* Limb Modal */}
+        {selectedLimb && (
+          <LimbModal
+            isOpen={showLimbModal}
+            onClose={() => setShowLimbModal(false)}
+            limb={selectedLimb}
+            limbType={getLimbType(selectedLimb.id)}
+            onUpdate={updateLimb}
+          />
+        )}
+
+        {/* Armor Class Modal */}
+        <ArmorClassModal
+          isOpen={showACModal}
+          onClose={() => setShowACModal(false)}
+          armorClass={character.armorClass}
+          limbs={character.limbs || []}
+          onUpdate={updateArmorClass}
+        />
+
+        {/* Item Modal */}
+        <ItemModal
+          isOpen={showItemModal}
+          onClose={closeItemModal}
+          item={editingItem}
+          onSave={saveItem}
+          onDelete={editingItem ? () => deleteItem(editingItem.id) : undefined}
+        />
+
+        {/* Attack Modal */}
+        <AttackModal
+          isOpen={showAttackModal}
+          onClose={closeAttackModal}
+          attack={editingAttack}
+          onSave={saveAttack}
+          onDelete={editingAttack && !editingAttack.weaponId ? () => deleteAttack(editingAttack.id) : undefined}
+        />
+
+        {/* Ability Modal */}
+        <AbilityModal
+          isOpen={showAbilityModal}
+          onClose={closeAbilityModal}
+          ability={editingAbility}
+          resources={character.resources || []}
+          onSave={saveAbility}
+          onDelete={editingAbility ? () => deleteAbility(editingAbility.id) : undefined}
+        />
+
+        {/* Ammunition Modal */}
+        <AnimatePresence>
+          {showAmmunitionModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowAmmunitionModal(false)}
+              className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4"
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-dark-card rounded-2xl border border-dark-border p-5 w-full max-w-md"
+              >
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-bold">Боеприпасы</h2>
+                  <button onClick={() => setShowAmmunitionModal(false)} className="w-7 h-7 rounded-lg hover:bg-dark-hover transition-all flex items-center justify-center">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                {character.inventory.filter(i => i.type === 'ammunition').length > 0 ? (
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {character.inventory.filter(i => i.type === 'ammunition').map((ammo) => (
+                      <div key={ammo.id} className="bg-dark-bg rounded-lg p-3 border border-dark-border">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <Zap className="w-4 h-4 text-orange-400" />
+                            <h4 className="font-bold">{ammo.name}</h4>
+                          </div>
+                          <span className="text-lg font-bold">×{ammo.quantity || 0}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => updateAmmunitionQuantity(ammo.id, -1)}
+                            className="w-8 h-8 bg-red-500/20 border border-red-500/50 text-red-400 rounded hover:bg-red-500/30 transition-all font-bold"
+                          >
+                            −
+                          </button>
+                          <div className="flex-1 bg-dark-card rounded px-3 py-1.5 text-center text-sm">
+                            <span className="text-gray-400">Вес:</span> <span className="font-bold">{ammo.weight}</span> • 
+                            <span className="text-gray-400 ml-2">Цена:</span> <span className="font-bold">{ammo.cost}</span>
+                          </div>
+                          <button
+                            onClick={() => updateAmmunitionQuantity(ammo.id, 1)}
+                            className="w-8 h-8 bg-green-500/20 border border-green-500/50 text-green-400 rounded hover:bg-green-500/30 transition-all font-bold"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-gray-400 text-center py-8">
+                    <Zap className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">Нет боеприпасов</p>
+                    <p className="text-xs mt-1">Добавьте боеприпасы в инвентаре</p>
+                  </div>
+                )}
+
+                <button
+                  onClick={() => setShowAmmunitionModal(false)}
+                  className="w-full mt-4 py-2 bg-dark-bg border border-dark-border rounded-lg hover:bg-dark-hover transition-all text-sm font-semibold"
+                >
+                  Закрыть
+                </button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* View Modals */}
+        {viewingAttack && (
+          <AttackViewModal
+            isOpen={showAttackViewModal}
+            onClose={() => setShowAttackViewModal(false)}
+            attack={viewingAttack}
+            onEdit={() => { setEditingAttack(viewingAttack); setShowAttackModal(true); }}
+          />
+        )}
+
+        {viewingAbility && (
+          <AbilityViewModal
+            isOpen={showAbilityViewModal}
+            onClose={() => setShowAbilityViewModal(false)}
+            ability={viewingAbility}
+            resource={viewingAbility.resourceId ? character.resources.find(r => r.id === viewingAbility.resourceId) : undefined}
+            onEdit={() => { setEditingAbility(viewingAbility); setShowAbilityModal(true); }}
+          />
+        )}
+
+        {viewingItem && (
+          <ItemViewModal
+            isOpen={showItemViewModal}
+            onClose={() => setShowItemViewModal(false)}
+            item={viewingItem}
+            onEdit={() => { setEditingItem(viewingItem); setShowItemModal(true); }}
+          />
+        )}
+
+        {viewingResource && (
+          <ResourceViewModal
+            isOpen={showResourceViewModal}
+            onClose={() => setShowResourceViewModal(false)}
+            resource={viewingResource}
+            onEdit={() => { 
+              setShowResourceViewModal(false);
+              openResourceModal(viewingResource); 
+            }}
+          />
+        )}
+      </motion.div>
+    </div>
+  );
+};
