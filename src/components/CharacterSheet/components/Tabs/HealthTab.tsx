@@ -1,6 +1,7 @@
 import React from 'react';
-import { Shield } from 'lucide-react';
+import { Shield, Activity, AlertCircle, Heart } from 'lucide-react';
 import { Character, Limb, getLimbInjuryLevel } from '../../../../types';
+import { motion } from 'framer-motion';
 
 interface HealthTabProps {
   character: Character;
@@ -16,167 +17,171 @@ export const HealthTab: React.FC<HealthTabProps> = ({
   openItemView,
 }) => {
   return (
-    <div>
-      <h3 className="text-xl font-bold mb-6">Здоровье конечностей</h3>
-      
-      {/* Body Diagram */}
-      <div className="flex justify-center mb-6">
-        <div className="relative" style={{ width: '300px', height: '450px' }}>
-          {/* SVG Body */}
-          <svg viewBox="0 0 300 450" className="absolute inset-0">
-            {/* Head */}
-            <ellipse cx="150" cy="50" rx="32" ry="40" className="fill-dark-bg stroke-dark-border" strokeWidth="2" />
-            <circle cx="150" cy="45" r="28" className="fill-dark-bg stroke-dark-border" strokeWidth="1.5" />
-            
-            {/* Neck */}
-            <rect x="140" y="85" width="20" height="15" className="fill-dark-bg stroke-dark-border" strokeWidth="1.5" />
-            
-            {/* Torso */}
-            <path 
-              d="M 125 100 Q 115 130 118 180 L 118 200 Q 120 220 135 225 L 165 225 Q 180 220 182 200 L 182 180 Q 185 130 175 100 Z" 
-              className="fill-dark-bg stroke-dark-border" 
-              strokeWidth="2" 
-            />
-            
-            {/* Shoulders */}
-            <ellipse cx="118" cy="105" rx="18" ry="12" className="fill-dark-bg stroke-dark-border" strokeWidth="1.5" />
-            <ellipse cx="182" cy="105" rx="18" ry="12" className="fill-dark-bg stroke-dark-border" strokeWidth="1.5" />
-            
-            {/* Left Arm */}
-            <path 
-              d="M 100 105 Q 85 110 75 130 Q 70 145 72 160 L 75 165"
-              className="fill-none stroke-dark-border" 
-              strokeWidth="16" 
-              strokeLinecap="round"
-            />
-            
-            {/* Right Arm */}
-            <path 
-              d="M 200 105 Q 215 110 225 130 Q 230 145 228 160 L 225 165"
-              className="fill-none stroke-dark-border" 
-              strokeWidth="16" 
-              strokeLinecap="round"
-            />
-            
-            {/* Left Leg */}
-            <path 
-              d="M 135 225 L 133 280 Q 132 320 130 360 L 128 410"
-              className="fill-none stroke-dark-border" 
-              strokeWidth="22" 
-              strokeLinecap="round"
-            />
-            
-            {/* Right Leg */}
-            <path 
-              d="M 165 225 L 167 280 Q 168 320 170 360 L 172 410"
-              className="fill-none stroke-dark-border" 
-              strokeWidth="22" 
-              strokeLinecap="round"
-            />
-          </svg>
-
-          {/* Clickable Limbs */}
-          {character.limbs && character.limbs.map((limb) => {
-            const injuryLevel = getLimbInjuryLevel(limb.currentHP);
-            const getColor = () => {
-              switch (injuryLevel) {
-                case 'destroyed': return 'bg-red-600/90 border-red-500';
-                case 'severe': return 'bg-orange-500/90 border-orange-400';
-                case 'light': return 'bg-yellow-500/90 border-yellow-400';
-                default: return 'bg-green-500/90 border-green-400';
-              }
-            };
-
-            const getPosition = () => {
-              switch (limb.id) {
-                case 'head': return { top: '25px', left: '50%', transform: 'translateX(-50%)', zIndex: 10 };
-                case 'torso': return { top: '150px', left: '50%', transform: 'translateX(-50%)', zIndex: 10 };
-                case 'leftArm': return { top: '130px', left: '45px', zIndex: 10 };
-                case 'rightArm': return { top: '130px', right: '45px', zIndex: 10 };
-                case 'leftLeg': return { top: '300px', left: '95px', zIndex: 10 };
-                case 'rightLeg': return { top: '300px', right: '95px', zIndex: 10 };
-                default: return {};
-              }
-            };
-
-            return (
-              <button
-                key={limb.id}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openLimbModal(limb);
-                }}
-                className={`absolute px-3 py-1.5 rounded-lg border-2 ${getColor()} hover:scale-110 transition-all cursor-pointer text-sm font-bold shadow-lg`}
-                style={getPosition()}
-              >
-                {limb.currentHP}
-              </button>
-            );
-          })}
-        </div>
+    <div className="space-y-8">
+      <div className="flex justify-between items-center">
+        <h3 className="text-xl font-bold flex items-center gap-2">
+          <Activity className="w-5 h-5 text-blue-400" />
+          Состояние тела
+        </h3>
       </div>
+      
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 items-start">
+        {/* Body Diagram Column */}
+        <div className="bg-dark-card/30 rounded-3xl border border-dark-border p-8 flex justify-center relative overflow-hidden group">
+          {/* Subtle Background Glow */}
+          <div className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+          
+          <div className="relative" style={{ width: '280px', height: '420px' }}>
+            {/* Minimalist Tactical Body SVG */}
+            <svg viewBox="0 0 200 300" className="w-full h-full opacity-20 stroke-blue-500 fill-none" strokeWidth="1">
+              {/* Head */}
+              <circle cx="100" cy="35" r="20" />
+              {/* Torso */}
+              <path d="M 80 60 L 120 60 L 125 130 L 75 130 Z" />
+              {/* Arms */}
+              <path d="M 75 65 L 40 100 L 45 140" />
+              <path d="M 125 65 L 160 100 L 155 140" />
+              {/* Legs */}
+              <path d="M 85 130 L 75 200 L 80 270" />
+              <path d="M 115 130 L 125 200 L 120 270" />
+            </svg>
 
-      {/* Equipped Armor Indicator */}
-      {character.inventory && character.inventory.find(i => i.equipped && i.type === 'armor') && (
-        <div className="mb-6">
-          {character.inventory.filter(i => i.equipped && i.type === 'armor').map((armor) => (
-            <button
-              key={armor.id}
-              onClick={() => openItemView(armor)}
-              className="w-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border-2 border-blue-500/50 rounded-xl p-4 hover:border-blue-500 transition-all group"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <Shield className="w-6 h-6 text-blue-400" />
-                  </div>
-                  <div className="text-left">
-                    <div className="text-sm text-blue-400 font-semibold">Экипирована броня</div>
-                    <div className="font-bold text-lg">{armor.name}</div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-xs text-gray-400">Базовый КБ</div>
-                  <div className="text-3xl font-bold text-blue-400">{armor.baseAC || 0}</div>
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Limbs List */}
-      <div className="space-y-2">
-        {character.limbs && character.limbs.map((limb) => {
-          const injuryLevel = getLimbInjuryLevel(limb.currentHP);
-          const getBorderColor = () => {
-            switch (injuryLevel) {
-              case 'destroyed': return 'border-red-500';
-              case 'severe': return 'border-orange-500';
-              case 'light': return 'border-yellow-500';
-              default: return 'border-dark-border';
-            }
-          };
-
-          return (
-            <div
-              key={limb.id}
-              onClick={() => openLimbModal(limb)}
-              className={`bg-dark-bg rounded-lg p-3 border-2 ${getBorderColor()} hover:border-blue-500/50 transition-all cursor-pointer`}
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-bold">{limb.name}</div>
-                  <div className="text-xs text-gray-400">КБ: {limb.ac}</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold">{limb.currentHP}</div>
-                  <div className="text-xs text-gray-400">/ {limb.maxHP}</div>
-                </div>
-              </div>
+            {/* Tactical Target Lines */}
+            <div className="absolute inset-0 pointer-events-none">
+              <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-blue-500/30" />
+              <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-blue-500/30" />
+              <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-blue-500/30" />
+              <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-blue-500/30" />
             </div>
-          );
-        })}
+
+            {/* Floating Limb Status Bubbles */}
+            {character.limbs && character.limbs.map((limb) => {
+              const injuryLevel = getLimbInjuryLevel(limb.currentHP);
+              const percentage = Math.max(0, (limb.currentHP / limb.maxHP) * 100);
+              
+              const getColorClasses = () => {
+                switch (injuryLevel) {
+                  case 'destroyed': return 'text-red-400 border-red-500/50 bg-red-500/10 shadow-red-500/20';
+                  case 'severe': return 'text-orange-400 border-orange-500/50 bg-orange-500/10 shadow-orange-500/20';
+                  case 'light': return 'text-yellow-400 border-yellow-500/50 bg-yellow-500/10 shadow-yellow-500/20';
+                  default: return 'text-blue-400 border-blue-500/50 bg-blue-500/10 shadow-blue-500/20';
+                }
+              };
+
+              const getPosition = () => {
+                switch (limb.id) {
+                  case 'head': return { top: '5%', left: '50%', transform: 'translateX(-50%)' };
+                  case 'torso': return { top: '30%', left: '50%', transform: 'translateX(-50%)' };
+                  case 'leftArm': return { top: '25%', left: '-15%' };
+                  case 'rightArm': return { top: '25%', right: '-15%' };
+                  case 'leftLeg': return { top: '70%', left: '5%' };
+                  case 'rightLeg': return { top: '70%', right: '5%' };
+                  default: return {};
+                }
+              };
+
+              return (
+                <motion.button
+                  key={limb.id}
+                  whileHover={{ scale: 1.1, zIndex: 20 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => openLimbModal(limb)}
+                  className={`absolute flex flex-col items-center gap-1 p-2 rounded-2xl border backdrop-blur-md transition-all shadow-xl ${getColorClasses()}`}
+                  style={getPosition()}
+                >
+                  <span className="text-[10px] font-black uppercase tracking-tighter opacity-70 leading-none">{limb.name}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-black leading-none">{limb.currentHP}</span>
+                    <div className="w-8 h-1 bg-dark-bg/50 rounded-full overflow-hidden">
+                      <div className="h-full bg-current transition-all" style={{ width: `${percentage}%` }} />
+                    </div>
+                  </div>
+                </motion.button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Stats and Limbs List Column */}
+        <div className="space-y-6">
+          {/* Equipped Armor Summary */}
+          {character.inventory && character.inventory.find(i => i.equipped && i.type === 'armor') && (
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest px-1">Текущая защита</h4>
+              {character.inventory.filter(i => i.equipped && i.type === 'armor').map((armor) => (
+                <button
+                  key={armor.id}
+                  onClick={() => openItemView(armor)}
+                  className="w-full bg-dark-card/50 border border-blue-500/20 rounded-2xl p-4 hover:border-blue-500/50 transition-all flex items-center justify-between group shadow-lg"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center border border-blue-500/20 group-hover:scale-110 transition-transform shadow-inner">
+                      <Shield className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <div className="text-left">
+                      <div className="text-lg font-bold text-gray-100">{armor.name}</div>
+                      <div className="text-[10px] text-blue-400 font-black uppercase tracking-widest">Базовая броня</div>
+                    </div>
+                  </div>
+                  <div className="text-3xl font-black text-blue-400 px-4">{armor.baseAC || 0}</div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Detailed Limbs Grid */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest px-1">Детали повреждений</h4>
+            <div className="grid grid-cols-1 gap-2">
+              {character.limbs && character.limbs.map((limb) => {
+                const injuryLevel = getLimbInjuryLevel(limb.currentHP);
+                const isInjured = injuryLevel !== 'none';
+                
+                return (
+                  <button
+                    key={limb.id}
+                    onClick={() => openLimbModal(limb)}
+                    className={`flex items-center justify-between p-3 rounded-xl border transition-all text-left bg-dark-card/20 hover:bg-dark-card/40 ${
+                      isInjured ? 'border-orange-500/30' : 'border-dark-border hover:border-blue-500/30'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center border ${
+                        injuryLevel === 'destroyed' ? 'bg-red-500/20 border-red-500 text-red-400' :
+                        injuryLevel === 'severe' ? 'bg-orange-500/20 border-orange-500 text-orange-400' :
+                        injuryLevel === 'light' ? 'bg-yellow-500/20 border-yellow-500 text-yellow-400' :
+                        'bg-dark-bg border-dark-border text-gray-500'
+                      }`}>
+                        {isInjured ? <AlertCircle className="w-4 h-4" /> : <Shield className="w-4 h-4 opacity-50" />}
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold text-gray-200">{limb.name}</div>
+                        <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">КБ: {limb.ac}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-4">
+                      {isInjured && (
+                        <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                          injuryLevel === 'destroyed' ? 'bg-red-500/20 text-red-400' :
+                          injuryLevel === 'severe' ? 'bg-orange-500/20 text-orange-400' :
+                          'bg-yellow-500/20 text-yellow-400'
+                        }`}>
+                          {injuryLevel === 'destroyed' ? 'Разрушено' : 
+                           injuryLevel === 'severe' ? 'Тяжелое' : 'Легкое'}
+                        </span>
+                      )}
+                      <div className="text-right">
+                        <span className={`text-lg font-black ${isInjured ? 'text-orange-400' : 'text-blue-400'}`}>{limb.currentHP}</span>
+                        <span className="text-xs text-gray-600 font-bold"> / {limb.maxHP}</span>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
