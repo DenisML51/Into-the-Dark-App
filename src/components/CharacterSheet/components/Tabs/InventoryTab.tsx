@@ -1,4 +1,5 @@
 import React from 'react';
+import { Backpack, Shield, Sword, Box, Zap, Settings } from 'lucide-react';
 import { Character, InventoryItem } from '../../../../types';
 import { InventorySubTab } from '../../CharacterSheetLogic';
 import { MarkdownEditor } from '../../../MarkdownEditor';
@@ -67,112 +68,109 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
       {character.inventory && character.inventory.filter(item => 
         inventorySubTab === 'all' || item.type === inventorySubTab
       ).length > 0 ? (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {character.inventory.filter(item => 
             inventorySubTab === 'all' || item.type === inventorySubTab
           ).map((item) => {
             const ItemIcon = getItemIcon(item.type);
+            const isWeapon = item.type === 'weapon';
+            const isArmor = item.type === 'armor';
+            const isConsumable = item.type === 'item' || item.type === 'ammunition';
+
             return (
               <div
                 key={item.id}
                 onClick={() => openItemView(item)}
-                className={`bg-dark-bg rounded-lg p-3 border transition-all cursor-pointer ${
-                  item.equipped ? 'border-blue-500/30 bg-blue-500/5' : 'border-dark-border hover:border-blue-500/50'
+                className={`group relative bg-dark-card/50 rounded-xl border transition-all cursor-pointer overflow-hidden p-4 ${
+                  item.equipped ? 'border-blue-500/50 bg-blue-500/5' : 'border-dark-border hover:border-blue-500/30'
                 }`}
               >
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <ItemIcon className="w-4 h-4 text-gray-400" />
-                      <span className="px-2 py-0.5 bg-dark-card text-xs rounded">
+                <div className="flex items-center gap-4">
+                  <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center border shadow-inner group-hover:scale-110 transition-transform ${
+                    item.equipped ? 'bg-blue-500/20 border-blue-500/30' : 'bg-dark-bg border-dark-border'
+                  }`}>
+                    <ItemIcon className={`w-5 h-5 ${item.equipped ? 'text-blue-400' : 'text-gray-400'}`} />
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h4 className={`font-bold truncate ${item.equipped ? 'text-blue-400' : 'text-gray-100'}`}>{item.name}</h4>
+                      <span className="px-2 py-0.5 bg-dark-bg border border-dark-border text-gray-500 text-[9px] font-black uppercase tracking-wider rounded-full">
                         {getItemTypeLabel(item.type)}
                       </span>
-                      <h4 className="font-bold">{item.name}</h4>
                       {item.equipped && (
-                        <span className="px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full">
+                        <span className="px-2 py-0.5 bg-blue-500 text-white text-[9px] font-black uppercase tracking-wider rounded-full shadow-lg shadow-blue-500/20">
                           Экип.
                         </span>
                       )}
-                      {(item.quantity !== undefined && item.quantity > 1) && (
-                        <span className="px-2 py-0.5 bg-gray-500/30 text-white text-xs rounded-full">
-                          x{item.quantity}
-                        </span>
-                      )}
                     </div>
-                    {item.description && (
-                      <MarkdownText content={item.description} className="text-xs text-gray-400 mt-1" />
-                    )}
-                    {item.type === 'weapon' && (
-                      <div className="text-xs text-gray-400 mt-1 break-words">
-                        Урон: {item.damage} • {item.damageType} • {item.weaponClass === 'melee' ? 'Мили' : 'Огнестрел'}
-                      </div>
-                    )}
-                    {item.type === 'armor' && item.baseAC && (
-                      <div className="text-xs text-gray-400 mt-1">
-                        КБ: {item.baseAC}
-                        {item.dexModifier && (
-                          <span> + Ловк.{item.maxDexModifier !== null ? ` (макс ${item.maxDexModifier})` : ''}</span>
-                        )}
-                      </div>
-                    )}
-                    {item.itemClass && (
-                      <div className="text-xs text-gray-400 mt-1 break-words">
-                        Класс: {item.itemClass}
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="flex gap-2 flex-shrink-0">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); openItemModal(item); }}
-                      className="px-2 py-1 bg-dark-card border border-dark-border rounded text-xs hover:bg-dark-hover transition-all"
-                    >
-                      Изм.
-                    </button>
-                    {(item.type === 'armor' || item.type === 'weapon') && (item.equipped ? (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); unequipItem(item.id); }}
-                        className="px-2 py-1 bg-red-500/20 border border-red-500/50 text-red-400 rounded hover:bg-red-500/30 transition-all text-xs font-semibold"
-                      >
-                        Снять
-                      </button>
-                    ) : (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); equipItem(item.id); }}
-                        className="px-2 py-1 bg-green-500/20 border border-green-500/50 text-green-400 rounded hover:bg-green-500/30 transition-all text-xs font-semibold"
-                      >
-                        Экип.
-                      </button>
-                    ))}
-                  </div>
-                </div>
 
-                <div className="flex gap-2 text-xs flex-wrap items-center">
-                  <div className="bg-dark-card rounded px-2 py-1">
-                    <span className="text-gray-400">Вес:</span> <span className="font-bold">{item.weight % 1 === 0 ? item.weight : item.weight.toFixed(1)}</span>
-                  </div>
-                  <div className="bg-dark-card rounded px-2 py-1">
-                    <span className="text-gray-400">Цена:</span> <span className="font-bold">{item.cost}</span>
-                  </div>
-                  {(item.type === 'item' || item.type === 'ammunition') && item.quantity !== undefined && (
-                    <div className="flex items-center gap-1 ml-auto">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); updateItemQuantity(item.id, -1); }}
-                        className="w-6 h-6 bg-red-500/20 border border-red-500/50 text-red-400 rounded hover:bg-red-500/30 transition-all font-bold text-sm flex items-center justify-center"
-                      >
-                        −
-                      </button>
-                      <div className="bg-dark-card rounded px-3 py-1 min-w-[50px] text-center">
-                        <span className="font-bold">{item.quantity}</span>
+                    <div className="flex items-center gap-3 text-[10px]">
+                      {isWeapon && (
+                        <div className="flex items-center gap-1 text-red-400 font-bold">
+                          <Sword className="w-3 h-3" />
+                          <span>{item.damage}</span>
+                          <span className="text-gray-600 font-normal">•</span>
+                          <span>{item.damageType}</span>
+                        </div>
+                      )}
+                      {isArmor && (
+                        <div className="flex items-center gap-1 text-blue-400 font-bold">
+                          <Shield className="w-3 h-3" />
+                          <span>КБ {item.baseAC}</span>
+                        </div>
+                      )}
+                      <div className="text-gray-500 flex items-center gap-1">
+                        <span className="font-bold text-gray-400">{item.weight % 1 === 0 ? item.weight : item.weight.toFixed(1)}</span> lb
                       </div>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); updateItemQuantity(item.id, 1); }}
-                        className="w-6 h-6 bg-green-500/20 border border-green-500/50 text-green-400 rounded hover:bg-green-500/30 transition-all font-bold text-sm flex items-center justify-center"
-                      >
-                        +
-                      </button>
+                      <div className="text-gray-500 flex items-center gap-1">
+                        <span className="font-bold text-gray-400">{item.cost}</span> gp
+                      </div>
                     </div>
-                  )}
+                  </div>
+
+                  <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                    {isConsumable && item.quantity !== undefined && (
+                      <div className="flex items-center bg-dark-bg border border-dark-border rounded-lg overflow-hidden h-8">
+                        <button
+                          onClick={() => updateItemQuantity(item.id, -1)}
+                          className="w-8 h-full hover:bg-red-500/10 text-red-400 transition-all font-black text-xs"
+                        >
+                          −
+                        </button>
+                        <div className="px-2 font-black text-xs min-w-[30px] text-center border-x border-dark-border">
+                          {item.quantity}
+                        </div>
+                        <button
+                          onClick={() => updateItemQuantity(item.id, 1)}
+                          className="w-8 h-full hover:bg-green-500/10 text-green-400 transition-all font-black text-xs"
+                        >
+                          +
+                        </button>
+                      </div>
+                    )}
+
+                    {(isArmor || isWeapon) && (
+                      <button
+                        onClick={() => item.equipped ? unequipItem(item.id) : equipItem(item.id)}
+                        className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all border ${
+                          item.equipped 
+                            ? 'bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20' 
+                            : 'bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500/20'
+                        }`}
+                      >
+                        {item.equipped ? 'Снять' : 'Надеть'}
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => openItemModal(item)}
+                      className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:text-gray-200 hover:bg-dark-hover transition-all"
+                      title="Редактировать"
+                    >
+                      <Settings className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             );

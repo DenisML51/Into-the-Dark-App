@@ -43,26 +43,28 @@ export const AttacksTab: React.FC<AttacksTabProps> = ({
                 <span className="text-xs text-gray-400 uppercase font-semibold">Атаки от оружия</span>
                 <div className="h-px flex-1 bg-dark-border"></div>
               </div>
-              <div className="space-y-2 mb-4">
+              <div className="space-y-3 mb-6">
                 {character.attacks.filter(a => a.weaponId).map((attack) => (
                   <motion.div
                     key={attack.id}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     onClick={() => openAttackView(attack)}
-                    className="group relative bg-dark-card rounded-lg border border-dark-border border-l-4 border-l-red-500 hover:border-red-400 transition-all cursor-pointer overflow-hidden"
+                    className="group relative bg-dark-card/50 rounded-xl border border-dark-border hover:border-red-500/30 transition-all cursor-pointer overflow-hidden p-4"
                   >
-                    <div className="flex items-center gap-3 p-3">
-                      <div className="flex-shrink-0 w-12 h-12 bg-red-500/10 rounded-lg flex items-center justify-center border border-red-500/20">
+                    <div className="flex items-center gap-4">
+                      <div className="flex-shrink-0 w-10 h-10 bg-red-500/10 rounded-xl flex items-center justify-center border border-red-500/20 shadow-inner group-hover:scale-110 transition-transform">
                         <Sword className="w-5 h-5 text-red-400" />
                       </div>
+                      
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-bold text-sm text-gray-100 truncate">{attack.name}</h4>
-                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${getActionTypeColor(attack.actionType)}`}>
+                        <div className="flex items-center gap-3 mb-2">
+                          <h4 className="font-bold text-gray-100 group-hover:text-red-400 transition-colors truncate">{attack.name}</h4>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border shadow-sm ${getActionTypeColor(attack.actionType)}`}>
                             {getActionTypeLabel(attack.actionType)}
                           </span>
                         </div>
+                        
                         <div className="flex items-center gap-3 text-xs">
                           <span className="text-gray-300">
                             <span className="text-gray-500">Бонус:</span> <span className="font-bold text-blue-400">{attack.hitBonus >= 0 ? '+' : ''}{attack.hitBonus}</span>
@@ -86,9 +88,10 @@ export const AttacksTab: React.FC<AttacksTabProps> = ({
                           )}
                         </div>
                       </div>
+
                       <button
                         onClick={(e) => { e.stopPropagation(); openAttackModal(attack); }}
-                        className="flex-shrink-0 p-2 text-gray-400 hover:text-gray-200 hover:bg-dark-hover rounded transition-all opacity-0 group-hover:opacity-100"
+                        className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:text-gray-200 hover:bg-dark-hover transition-all opacity-0 group-hover:opacity-100"
                         title="Настроить"
                       >
                         <Settings className="w-4 h-4" />
@@ -108,26 +111,28 @@ export const AttacksTab: React.FC<AttacksTabProps> = ({
                 <span className="text-xs text-gray-400 uppercase font-semibold">Пользовательские атаки</span>
                 <div className="h-px flex-1 bg-dark-border"></div>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {character.attacks.filter(a => !a.weaponId).map((attack) => (
                   <motion.div
                     key={attack.id}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     onClick={() => openAttackView(attack)}
-                    className="group relative bg-dark-card rounded-lg border border-dark-border border-l-4 border-l-purple-500 hover:border-purple-400 transition-all cursor-pointer overflow-hidden"
+                    className="group relative bg-dark-card/50 rounded-xl border border-dark-border hover:border-purple-500/30 transition-all cursor-pointer overflow-hidden p-4"
                   >
-                    <div className="flex items-center gap-3 p-3">
-                      <div className="flex-shrink-0 w-12 h-12 bg-purple-500/10 rounded-lg flex items-center justify-center border border-purple-500/20">
+                    <div className="flex items-center gap-4">
+                      <div className="flex-shrink-0 w-10 h-10 bg-purple-500/10 rounded-xl flex items-center justify-center border border-purple-500/20 shadow-inner group-hover:scale-110 transition-transform">
                         <Zap className="w-5 h-5 text-purple-400" />
                       </div>
+                      
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-bold text-sm text-gray-100 truncate">{attack.name}</h4>
-                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${getActionTypeColor(attack.actionType)}`}>
+                        <div className="flex items-center gap-3 mb-2">
+                          <h4 className="font-bold text-gray-100 group-hover:text-purple-400 transition-colors truncate">{attack.name}</h4>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border shadow-sm ${getActionTypeColor(attack.actionType)}`}>
                             {getActionTypeLabel(attack.actionType)}
                           </span>
                         </div>
+                        
                         <div className="flex items-center gap-3 text-xs">
                           <span className="text-gray-300">
                             <span className="text-gray-500">Бонус:</span> <span className="font-bold text-blue-400">{attack.hitBonus >= 0 ? '+' : ''}{attack.hitBonus}</span>
@@ -151,9 +156,10 @@ export const AttacksTab: React.FC<AttacksTabProps> = ({
                           )}
                         </div>
                       </div>
+
                       <button
                         onClick={(e) => { e.stopPropagation(); openAttackModal(attack); }}
-                        className="flex-shrink-0 p-2 text-gray-400 hover:text-gray-200 hover:bg-dark-hover rounded transition-all opacity-0 group-hover:opacity-100"
+                        className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:text-gray-200 hover:bg-dark-hover transition-all opacity-0 group-hover:opacity-100"
                         title="Настроить"
                       >
                         <Settings className="w-4 h-4" />
