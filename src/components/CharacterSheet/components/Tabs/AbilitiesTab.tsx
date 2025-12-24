@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Zap, Settings, CheckCircle2, XCircle } from 'lucide-react';
 import { Character, Resource, Ability } from '../../../../types';
 import { getLucideIcon } from '../../../../utils/iconUtils';
+import { MarkdownEditor } from '../../../MarkdownEditor';
 
 interface AbilitiesTabProps {
   character: Character;
@@ -232,20 +233,11 @@ export const AbilitiesTab: React.FC<AbilitiesTabProps> = ({
       {/* Text notes at the end */}
       <div className="mt-6">
         <div className="text-xs text-gray-400 mb-2 uppercase">Заметки</div>
-        <textarea
+        <MarkdownEditor
           value={character.abilitiesNotes || ''}
-          onChange={(e) => {
-            updateAbilitiesNotes(e.target.value);
-            e.target.style.height = 'auto';
-            e.target.style.height = e.target.scrollHeight + 'px';
-          }}
-          onFocus={(e) => {
-            e.target.style.height = 'auto';
-            e.target.style.height = e.target.scrollHeight + 'px';
-          }}
+          onChange={updateAbilitiesNotes}
           placeholder="Дополнительные заметки о способностях..."
-          className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none overflow-hidden"
-          style={{ minHeight: '60px' }}
+          minHeight="60px"
         />
       </div>
     </div>

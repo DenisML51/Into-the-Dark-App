@@ -2,6 +2,8 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Settings, Plus, Sparkles } from 'lucide-react';
 import { Character, Trait, Race, Class } from '../../../../types';
+import { MarkdownEditor } from '../../../MarkdownEditor';
+import { MarkdownText } from '../../../MarkdownText';
 
 interface PersonalityTabProps {
   character: Character;
@@ -103,7 +105,7 @@ export const PersonalityTab: React.FC<PersonalityTabProps> = ({
                     </div>
                   </div>
                   {trait.description && (
-                    <p className="text-sm text-gray-400 mt-2">{trait.description}</p>
+                    <MarkdownText content={trait.description} className="text-sm text-gray-400 mt-2 line-clamp-2" />
                   )}
                 </div>
                 <button
@@ -142,22 +144,20 @@ export const PersonalityTab: React.FC<PersonalityTabProps> = ({
           
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Внешность</label>
-            <textarea
+            <MarkdownEditor
               value={character.appearance || ''}
-              onChange={(e) => updatePersonalityField('appearance', e.target.value)}
+              onChange={(val) => updatePersonalityField('appearance', val)}
               rows={4}
-              className="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               placeholder="Опишите внешний вид персонажа..."
             />
           </div>
 
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Предыстория</label>
-            <textarea
+            <MarkdownEditor
               value={character.backstory || ''}
-              onChange={(e) => updatePersonalityField('backstory', e.target.value)}
+              onChange={(val) => updatePersonalityField('backstory', val)}
               rows={6}
-              className="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               placeholder="Расскажите историю персонажа..."
             />
           </div>
@@ -181,22 +181,20 @@ export const PersonalityTab: React.FC<PersonalityTabProps> = ({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Черты характера</label>
-              <textarea
+              <MarkdownEditor
                 value={character.personalityTraits || ''}
-                onChange={(e) => updatePersonalityField('personalityTraits', e.target.value)}
+                onChange={(val) => updatePersonalityField('personalityTraits', val)}
                 rows={4}
-                className="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                 placeholder="Опишите характер и манеры..."
               />
             </div>
 
             <div>
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Идеалы</label>
-              <textarea
+              <MarkdownEditor
                 value={character.ideals || ''}
-                onChange={(e) => updatePersonalityField('ideals', e.target.value)}
+                onChange={(val) => updatePersonalityField('ideals', val)}
                 rows={4}
-                className="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                 placeholder="Во что верит персонаж..."
               />
             </div>
@@ -205,22 +203,20 @@ export const PersonalityTab: React.FC<PersonalityTabProps> = ({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Привязанности</label>
-              <textarea
+              <MarkdownEditor
                 value={character.bonds || ''}
-                onChange={(e) => updatePersonalityField('bonds', e.target.value)}
+                onChange={(val) => updatePersonalityField('bonds', val)}
                 rows={4}
-                className="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                 placeholder="Люди, места или вещи..."
               />
             </div>
 
             <div>
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Слабости</label>
-              <textarea
+              <MarkdownEditor
                 value={character.flaws || ''}
-                onChange={(e) => updatePersonalityField('flaws', e.target.value)}
+                onChange={(val) => updatePersonalityField('flaws', val)}
                 rows={4}
-                className="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                 placeholder="Недостатки и уязвимости..."
               />
             </div>
@@ -233,22 +229,20 @@ export const PersonalityTab: React.FC<PersonalityTabProps> = ({
           
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Союзники и организации</label>
-            <textarea
+            <MarkdownEditor
               value={character.alliesAndOrganizations || ''}
-              onChange={(e) => updatePersonalityField('alliesAndOrganizations', e.target.value)}
+              onChange={(val) => updatePersonalityField('alliesAndOrganizations', val)}
               rows={4}
-              className="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               placeholder="Союзники, друзья, организации..."
             />
           </div>
 
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Владения и языки</label>
-            <textarea
+            <MarkdownEditor
               value={character.languagesAndProficiencies || ''}
-              onChange={(e) => updateLanguagesAndProficiencies(e.target.value)}
+              onChange={updateLanguagesAndProficiencies}
               rows={4}
-              className="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               placeholder="Доспехи, оружие, языки..."
             />
           </div>

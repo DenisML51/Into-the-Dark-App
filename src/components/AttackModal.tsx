@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Attack } from '../types';
 import { ATTRIBUTES_LIST } from '../types';
+import { MarkdownEditor } from './MarkdownEditor';
+import { Sword, Target, Zap, Clock, ChevronDown, Check, X } from 'lucide-react';
 
 interface AttackModalProps {
   isOpen: boolean;
@@ -64,6 +66,12 @@ export const AttackModal: React.FC<AttackModalProps> = ({
     onClose();
   };
 
+  const actionTypes = [
+    { id: 'action', label: 'Основное', activeClass: 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' },
+    { id: 'bonus', label: 'Бонусное', activeClass: 'bg-green-500 text-white shadow-lg shadow-green-500/20' },
+    { id: 'reaction', label: 'Реакция', activeClass: 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' },
+  ];
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -79,167 +87,197 @@ export const AttackModal: React.FC<AttackModalProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             onClick={(e) => e.stopPropagation()}
-            className="bg-dark-card rounded-2xl border border-dark-border p-5 w-full max-w-md max-h-[90vh] overflow-y-auto"
+            className="bg-dark-card rounded-2xl border border-dark-border w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col shadow-2xl"
           >
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">{attack ? 'Редактировать атаку' : 'Новая атака'}</h2>
-              <button onClick={onClose} className="w-7 h-7 rounded-lg hover:bg-dark-hover transition-all flex items-center justify-center">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+            {/* Header */}
+            <div className="p-6 border-b border-dark-border flex items-center justify-between bg-dark-card/50 backdrop-blur-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center shadow-lg shadow-red-500/20">
+                  <Sword className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold">{attack ? 'Редактировать атаку' : 'Новая атака'}</h2>
+                  <p className="text-xs text-gray-400">Настройка боевых параметров</p>
+                </div>
+              </div>
+              <button 
+                onClick={onClose} 
+                className="w-8 h-8 rounded-lg hover:bg-dark-hover transition-all flex items-center justify-center text-gray-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-3">
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
               {/* Name */}
               <div>
-                <div className="text-xs text-gray-400 mb-1.5 uppercase">Название</div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Название атаки</label>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Название атаки..."
-                  className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Меч +1, Выстрел из лука..."
+                  className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                 />
               </div>
 
-              {/* Description */}
-              <div>
-                <div className="text-xs text-gray-400 mb-1.5 uppercase">Описание</div>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={2}
-                  placeholder="Описание атаки..."
-                  className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                />
-              </div>
-
-              {/* Damage & Type */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <div className="text-xs text-gray-400 mb-1.5 uppercase">Урон</div>
-                  <input
-                    type="text"
-                    value={damage}
-                    onChange={(e) => setDamage(e.target.value)}
-                    placeholder="1d6+2"
-                    className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+              {/* Main Stats Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-2xl">
+                  <div className="flex items-center gap-2 text-blue-400 mb-3">
+                    <Target className="w-4 h-4" />
+                    <span className="text-xs font-bold uppercase">Попадание</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <button onClick={() => setHitBonus(hitBonus - 1)} className="w-8 h-8 rounded-lg bg-dark-bg border border-dark-border hover:border-blue-500/50 flex items-center justify-center">-</button>
+                    <div className="text-2xl font-black text-blue-400">{hitBonus >= 0 ? '+' : ''}{hitBonus}</div>
+                    <button onClick={() => setHitBonus(hitBonus + 1)} className="w-8 h-8 rounded-lg bg-dark-bg border border-dark-border hover:border-blue-500/50 flex items-center justify-center">+</button>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-xs text-gray-400 mb-1.5 uppercase">Тип урона</div>
-                  <input
-                    type="text"
-                    value={damageType}
-                    onChange={(e) => setDamageType(e.target.value)}
-                    placeholder="Колющий..."
-                    className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
 
-              {/* Hit Bonus */}
-              <div>
-                <div className="text-xs text-gray-400 mb-1.5 uppercase">Бонус к попаданию</div>
-                <div className="relative">
-                  <button
-                    onClick={() => setHitBonus(Math.max(-10, hitBonus - 1))}
-                    className="absolute left-2 top-1/2 -translate-y-1/2 w-6 h-6 bg-dark-hover rounded flex items-center justify-center hover:bg-gray-600 transition-all"
-                  >
-                    −
-                  </button>
-                  <input
-                    type="number"
-                    value={hitBonus}
-                    onChange={(e) => setHitBonus(parseInt(e.target.value) || 0)}
-                    className="w-full bg-dark-bg border border-dark-border rounded-lg px-10 py-2 text-center font-bold focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <button
-                    onClick={() => setHitBonus(Math.min(20, hitBonus + 1))}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 bg-dark-hover rounded flex items-center justify-center hover:bg-gray-600 transition-all"
-                  >
-                    +
-                  </button>
+                <div className="p-4 bg-red-500/5 border border-red-500/20 rounded-2xl">
+                  <div className="flex items-center gap-2 text-red-400 mb-3">
+                    <Sword className="w-4 h-4" />
+                    <span className="text-xs font-bold uppercase">Урон</span>
+                  </div>
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      value={damage}
+                      onChange={(e) => setDamage(e.target.value)}
+                      placeholder="1d8+3"
+                      className="w-full bg-dark-bg border border-dark-border rounded-lg px-2 py-1 text-center font-bold text-red-400 focus:outline-none focus:ring-1 focus:ring-red-500"
+                    />
+                    <input
+                      type="text"
+                      value={damageType}
+                      onChange={(e) => setDamageType(e.target.value)}
+                      placeholder="Тип урона"
+                      className="w-full bg-transparent text-[10px] text-center text-gray-500 focus:outline-none"
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* Attribute & Action Type */}
-              <div className="grid grid-cols-2 gap-3">
+              {/* Action & Attribute */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <div className="text-xs text-gray-400 mb-1.5 uppercase">Характеристика</div>
-                  <select
-                    value={attribute}
-                    onChange={(e) => setAttribute(e.target.value)}
-                    className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    {ATTRIBUTES_LIST.map(attr => (
-                      <option key={attr.id} value={attr.id}>{attr.name}</option>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+                    <Clock className="w-3 h-3" />
+                    Тип действия
+                  </label>
+                  <div className="grid grid-cols-3 gap-2 p-1 bg-dark-bg rounded-xl border border-dark-border">
+                    {actionTypes.map((t) => (
+                      <button
+                        key={t.id}
+                        onClick={() => setActionType(t.id as any)}
+                        className={`py-2 rounded-lg text-[10px] font-bold transition-all ${
+                          actionType === t.id 
+                            ? t.activeClass 
+                            : 'text-gray-500 hover:text-gray-300'
+                        }`}
+                      >
+                        {t.label}
+                      </button>
                     ))}
-                  </select>
+                  </div>
                 </div>
+
                 <div>
-                  <div className="text-xs text-gray-400 mb-1.5 uppercase">Тип действия</div>
-                  <select
-                    value={actionType}
-                    onChange={(e) => setActionType(e.target.value as 'action' | 'bonus' | 'reaction')}
-                    className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="action">Основное</option>
-                    <option value="bonus">Бонусное</option>
-                    <option value="reaction">Реакция</option>
-                  </select>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+                    <Zap className="w-3 h-3" />
+                    Характеристика
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={attribute}
+                      onChange={(e) => setAttribute(e.target.value)}
+                      className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none transition-all cursor-pointer"
+                    >
+                      {ATTRIBUTES_LIST.map(attr => (
+                        <option key={attr.id} value={attr.id}>{attr.name} ({attr.shortName})</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                  </div>
                 </div>
               </div>
 
               {/* Ammunition */}
-              <div>
-                <label className="flex items-center gap-2 p-2 bg-dark-bg rounded-lg border border-dark-border cursor-pointer hover:border-blue-500 transition-all">
+              <div className={`p-4 rounded-2xl border transition-all ${usesAmmunition ? 'bg-orange-500/5 border-orange-500/20' : 'bg-dark-bg/30 border-dark-border'}`}>
+                <label className="flex items-center justify-between cursor-pointer">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-all ${usesAmmunition ? 'bg-orange-500/20 border-orange-500/30' : 'bg-dark-bg border-dark-border'}`}>
+                      <Zap className={`w-4 h-4 ${usesAmmunition ? 'text-orange-400' : 'text-gray-600'}`} />
+                    </div>
+                    <div>
+                      <span className={`text-sm font-bold ${usesAmmunition ? 'text-orange-400' : 'text-gray-400'}`}>Расход боеприпасов</span>
+                      <p className="text-[10px] text-gray-500">Тратит стрелы или патроны при атаке</p>
+                    </div>
+                  </div>
                   <input
                     type="checkbox"
                     checked={usesAmmunition}
                     onChange={(e) => setUsesAmmunition(e.target.checked)}
-                    className="w-4 h-4"
+                    className="hidden"
                   />
-                  <span className="text-sm">Тратит боеприпасы</span>
-                </label>
-                {usesAmmunition && (
-                  <div className="mt-2">
-                    <div className="text-xs text-gray-400 mb-1.5 uppercase">Количество за атаку</div>
-                    <input
-                      type="number"
-                      value={ammunitionCost}
-                      onChange={(e) => setAmmunitionCost(Math.max(1, parseInt(e.target.value) || 1))}
-                      min="1"
-                      className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-center text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                  <div className={`w-10 h-6 rounded-full relative transition-all ${usesAmmunition ? 'bg-orange-500' : 'bg-gray-700'}`}>
+                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${usesAmmunition ? 'left-5' : 'left-1'}`} />
                   </div>
+                </label>
+                
+                {usesAmmunition && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="mt-4 pt-4 border-t border-orange-500/20 flex items-center justify-between"
+                  >
+                    <span className="text-xs text-gray-400">Количество за выстрел</span>
+                    <div className="flex items-center gap-3">
+                      <button onClick={() => setAmmunitionCost(Math.max(1, ammunitionCost - 1))} className="w-7 h-7 rounded bg-dark-bg border border-orange-500/30 flex items-center justify-center text-orange-400">-</button>
+                      <span className="text-sm font-bold w-4 text-center">{ammunitionCost}</span>
+                      <button onClick={() => setAmmunitionCost(ammunitionCost + 1)} className="w-7 h-7 rounded bg-dark-bg border border-orange-500/30 flex items-center justify-center text-orange-400">+</button>
+                    </div>
+                  </motion.div>
                 )}
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Дополнительные эффекты</label>
+                <MarkdownEditor
+                  value={description}
+                  onChange={setDescription}
+                  placeholder="Опишите особые свойства атаки..."
+                  rows={4}
+                  minHeight="120px"
+                />
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="flex gap-2 mt-4">
+            {/* Footer Actions */}
+            <div className="p-6 bg-dark-card/50 backdrop-blur-sm border-t border-dark-border flex gap-3">
               {attack && onDelete && !attack.weaponId && (
                 <button
                   onClick={() => { onDelete(); onClose(); }}
-                  className="px-4 py-2 bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg hover:bg-red-500/20 transition-all text-sm font-semibold"
+                  className="px-4 py-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl hover:bg-red-500/20 transition-all text-sm font-bold flex items-center gap-2"
                 >
+                  <X className="w-4 h-4" />
                   Удалить
                 </button>
               )}
               <button
                 onClick={onClose}
-                className="flex-1 py-2 bg-dark-bg border border-dark-border rounded-lg hover:bg-dark-hover transition-all text-sm font-semibold"
+                className="flex-1 py-3 bg-dark-bg border border-dark-border rounded-xl hover:bg-dark-hover transition-all text-sm font-bold text-gray-400"
               >
                 Отмена
               </button>
               <button
                 onClick={handleSave}
                 disabled={!name.trim()}
-                className="flex-1 py-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg hover:shadow-lg transition-all text-sm font-semibold disabled:opacity-50"
+                className="flex-1 py-3 bg-gradient-to-r from-red-500 to-orange-500 rounded-xl hover:shadow-lg hover:shadow-red-500/40 transition-all text-sm font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Сохранить
+                Сохранить атаку
               </button>
             </div>
           </motion.div>

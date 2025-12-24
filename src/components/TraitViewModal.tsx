@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trait } from '../types';
 import { X, Sparkles } from 'lucide-react';
+import { MarkdownText } from './MarkdownText';
 
 interface TraitViewModalProps {
   isOpen: boolean;
@@ -54,7 +55,7 @@ export const TraitViewModal: React.FC<TraitViewModalProps> = ({
               {trait.description && (
                 <div className="mb-6 p-4 bg-dark-bg rounded-xl border border-dark-border">
                   <div className="text-sm text-gray-400 mb-2 uppercase font-semibold">Описание</div>
-                  <p className="text-white whitespace-pre-wrap">{trait.description}</p>
+                  <MarkdownText content={trait.description} />
                 </div>
               )}
 
@@ -66,10 +67,7 @@ export const TraitViewModal: React.FC<TraitViewModalProps> = ({
                   Закрыть
                 </button>
                 <button
-                  onClick={() => {
-                    onEdit();
-                    onClose();
-                  }}
+                  onClick={onEdit}
                   className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl hover:shadow-lg hover:shadow-blue-500/50 transition-all font-semibold"
                 >
                   Редактировать

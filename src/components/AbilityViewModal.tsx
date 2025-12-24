@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Ability, Resource } from '../types';
 import { Sparkles, Zap } from 'lucide-react';
 import { getLucideIcon } from '../utils/iconUtils';
+import { MarkdownText } from './MarkdownText';
 
 interface AbilityViewModalProps {
   isOpen: boolean;
@@ -60,7 +61,7 @@ export const AbilityViewModal: React.FC<AbilityViewModalProps> = ({
             {ability.description && (
               <div className="mb-6 p-4 bg-dark-bg rounded-xl border border-dark-border">
                 <div className="text-sm text-gray-400 mb-2">Описание</div>
-                <p className="text-white break-words">{ability.description}</p>
+                <MarkdownText content={ability.description} />
               </div>
             )}
 
@@ -104,7 +105,7 @@ export const AbilityViewModal: React.FC<AbilityViewModalProps> = ({
                   <Zap className="w-4 h-4 text-blue-400" />
                   <div className="text-sm font-semibold text-blue-400">Эффект</div>
                 </div>
-                <p className="text-white break-words leading-relaxed">{ability.effect}</p>
+                <MarkdownText content={ability.effect} />
               </div>
             </div>
 
@@ -117,7 +118,7 @@ export const AbilityViewModal: React.FC<AbilityViewModalProps> = ({
                 Закрыть
               </button>
               <button
-                onClick={() => { onEdit(); onClose(); }}
+                onClick={onEdit}
                 className="flex-1 py-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl hover:shadow-lg transition-all font-semibold"
               >
                 Редактировать

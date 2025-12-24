@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Resource } from '../types';
 import { getLucideIcon } from '../utils/iconUtils';
 import { X } from 'lucide-react';
+import { MarkdownText } from './MarkdownText';
 
 interface ResourceViewModalProps {
   isOpen: boolean;
@@ -95,7 +96,7 @@ export const ResourceViewModal: React.FC<ResourceViewModalProps> = ({
             {tempResource.description && (
               <div className="mb-6 p-4 bg-dark-bg rounded-xl border border-dark-border">
                 <div className="text-sm text-gray-400 mb-2 uppercase font-semibold">Описание</div>
-                <p className="text-white break-words">{tempResource.description}</p>
+                <MarkdownText content={tempResource.description} />
               </div>
             )}
 
@@ -224,10 +225,7 @@ export const ResourceViewModal: React.FC<ResourceViewModalProps> = ({
                 Отмена
               </button>
               <button
-                onClick={() => {
-                  onEdit();
-                  onClose();
-                }}
+                onClick={onEdit}
                 className="px-4 py-3 bg-dark-bg border border-dark-border rounded-xl hover:bg-dark-hover transition-all font-semibold"
               >
                 Настроить

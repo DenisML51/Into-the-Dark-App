@@ -1,6 +1,8 @@
 import React from 'react';
 import { Backpack, Zap } from 'lucide-react';
 import { Character } from '../../../../types';
+import { MarkdownEditor } from '../../../MarkdownEditor';
+import { MarkdownText } from '../../../MarkdownText';
 
 interface EquipmentTabProps {
   character: Character;
@@ -53,7 +55,7 @@ export const EquipmentTab: React.FC<EquipmentTabProps> = ({
                       <h4 className="font-bold">{item.name}</h4>
                     </div>
                     {item.description && (
-                      <div className="text-xs text-gray-400 mt-1 break-words overflow-wrap-anywhere">{item.description}</div>
+                      <MarkdownText content={item.description} className="text-xs text-gray-400 mt-1" />
                     )}
                     {item.type === 'weapon' && (
                       <div className="text-xs text-gray-400 mt-1">
@@ -95,20 +97,11 @@ export const EquipmentTab: React.FC<EquipmentTabProps> = ({
       {/* Text notes at the end */}
       <div className="mt-6">
         <div className="text-xs text-gray-400 mb-2 uppercase">Заметки</div>
-        <textarea
+        <MarkdownEditor
           value={character.equipmentNotes || ''}
-          onChange={(e) => {
-            updateEquipmentNotes(e.target.value);
-            e.target.style.height = 'auto';
-            e.target.style.height = e.target.scrollHeight + 'px';
-          }}
-          onFocus={(e) => {
-            e.target.style.height = 'auto';
-            e.target.style.height = e.target.scrollHeight + 'px';
-          }}
+          onChange={updateEquipmentNotes}
           placeholder="Дополнительные заметки о снаряжении..."
-          className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none overflow-hidden"
-          style={{ minHeight: '60px' }}
+          minHeight="60px"
         />
       </div>
     </div>

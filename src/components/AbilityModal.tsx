@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Ability, Resource } from '../types';
+import { MarkdownEditor } from './MarkdownEditor';
+import { Sparkles, Zap, Clock, ChevronDown, Check, X, Minus, Plus } from 'lucide-react';
 
 interface AbilityModalProps {
   isOpen: boolean;
@@ -55,6 +57,12 @@ export const AbilityModal: React.FC<AbilityModalProps> = ({
     onClose();
   };
 
+  const actionTypes = [
+    { id: 'action', label: 'Основное', activeClass: 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' },
+    { id: 'bonus', label: 'Бонусное', activeClass: 'bg-green-500 text-white shadow-lg shadow-green-500/20' },
+    { id: 'reaction', label: 'Реакция', activeClass: 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' },
+  ];
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -70,120 +78,154 @@ export const AbilityModal: React.FC<AbilityModalProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             onClick={(e) => e.stopPropagation()}
-            className="bg-dark-card rounded-2xl border border-dark-border p-5 w-full max-w-md max-h-[90vh] overflow-y-auto"
+            className="bg-dark-card rounded-2xl border border-dark-border w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col shadow-2xl"
           >
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">{ability ? 'Редактировать способность' : 'Новая способность'}</h2>
-              <button onClick={onClose} className="w-7 h-7 rounded-lg hover:bg-dark-hover transition-all flex items-center justify-center">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+            {/* Header */}
+            <div className="p-6 border-b border-dark-border flex items-center justify-between bg-dark-card/50 backdrop-blur-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
+                  <Sparkles className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold">{ability ? 'Редактировать способность' : 'Новая способность'}</h2>
+                  <p className="text-xs text-gray-400">Уникальные умения вашего героя</p>
+                </div>
+              </div>
+              <button 
+                onClick={onClose} 
+                className="w-8 h-8 rounded-lg hover:bg-dark-hover transition-all flex items-center justify-center text-gray-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-3">
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
               {/* Name */}
               <div>
-                <div className="text-xs text-gray-400 mb-1.5 uppercase">Название</div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Название способности</label>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Название способности..."
-                  className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Второе дыхание, Мощная атака..."
+                  className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                 />
               </div>
 
-              {/* Description */}
-              <div>
-                <div className="text-xs text-gray-400 mb-1.5 uppercase">Описание</div>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={2}
-                  placeholder="Описание способности..."
-                  className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                />
-              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Action Type */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+                    <Clock className="w-3 h-3" />
+                    Тип действия
+                  </label>
+                  <div className="grid grid-cols-3 gap-2 p-1 bg-dark-bg rounded-xl border border-dark-border">
+                    {actionTypes.map((t) => (
+                      <button
+                        key={t.id}
+                        onClick={() => setActionType(t.id as any)}
+                        className={`py-2 rounded-lg text-[10px] font-bold transition-all ${
+                          actionType === t.id 
+                            ? t.activeClass 
+                            : 'text-gray-500 hover:text-gray-300'
+                        }`}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-              {/* Action Type */}
-              <div>
-                <div className="text-xs text-gray-400 mb-1.5 uppercase">Тип действия</div>
-                <select
-                  value={actionType}
-                  onChange={(e) => setActionType(e.target.value as 'action' | 'bonus' | 'reaction')}
-                  className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="action">Основное</option>
-                  <option value="bonus">Бонусное</option>
-                  <option value="reaction">Реакция</option>
-                </select>
-              </div>
-
-              {/* Resource */}
-              <div>
-                <div className="text-xs text-gray-400 mb-1.5 uppercase">Ресурс (опционально)</div>
-                <select
-                  value={resourceId}
-                  onChange={(e) => setResourceId(e.target.value)}
-                  className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Не требует ресурса</option>
-                  {resources.map(resource => (
-                    <option key={resource.id} value={resource.id}>{resource.name}</option>
-                  ))}
-                </select>
+                {/* Resource Selection */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+                    <Zap className="w-3 h-3" />
+                    Тратит ресурс
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={resourceId}
+                      onChange={(e) => setResourceId(e.target.value)}
+                      className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none transition-all cursor-pointer"
+                    >
+                      <option value="">Не требует</option>
+                      {resources.map(resource => (
+                        <option key={resource.id} value={resource.id}>{resource.name}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                  </div>
+                </div>
               </div>
 
               {/* Resource Cost */}
               {resourceId && (
-                <div>
-                  <div className="text-xs text-gray-400 mb-1.5 uppercase">Стоимость</div>
-                  <input
-                    type="number"
-                    value={resourceCost}
-                    onChange={(e) => setResourceCost(Math.max(1, parseInt(e.target.value) || 1))}
-                    min="1"
-                    className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-center text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-4 bg-purple-500/5 border border-purple-500/20 rounded-2xl flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-2 text-purple-400">
+                    <Zap className="w-4 h-4" />
+                    <span className="text-xs font-bold uppercase">Стоимость использования</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => setResourceCost(Math.max(1, resourceCost - 1))} className="w-8 h-8 rounded-lg bg-dark-bg border border-purple-500/30 flex items-center justify-center text-purple-400 hover:bg-purple-500/10 transition-all"><Minus className="w-4 h-4" /></button>
+                    <span className="text-lg font-black text-white w-6 text-center">{resourceCost}</span>
+                    <button onClick={() => setResourceCost(resourceCost + 1)} className="w-8 h-8 rounded-lg bg-dark-bg border border-purple-500/30 flex items-center justify-center text-purple-400 hover:bg-purple-500/10 transition-all"><Plus className="w-4 h-4" /></button>
+                  </div>
+                </motion.div>
               )}
 
-              {/* Effect */}
-              <div>
-                <div className="text-xs text-gray-400 mb-1.5 uppercase">Эффект</div>
-                <textarea
-                  value={effect}
-                  onChange={(e) => setEffect(e.target.value)}
-                  rows={3}
-                  placeholder="Эффект способности..."
-                  className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                />
+              {/* Description & Effect */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Краткое описание</label>
+                  <MarkdownEditor
+                    value={description}
+                    onChange={setDescription}
+                    placeholder="Пара слов для списка способностей..."
+                    rows={2}
+                    minHeight="60px"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Полный эффект</label>
+                  <MarkdownEditor
+                    value={effect}
+                    onChange={setEffect}
+                    placeholder="Подробное описание того, что делает способность..."
+                    rows={4}
+                    minHeight="120px"
+                  />
+                </div>
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="flex gap-2 mt-4">
+            {/* Footer Actions */}
+            <div className="p-6 bg-dark-card/50 backdrop-blur-sm border-t border-dark-border flex gap-3">
               {ability && onDelete && (
                 <button
                   onClick={() => { onDelete(); onClose(); }}
-                  className="px-4 py-2 bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg hover:bg-red-500/20 transition-all text-sm font-semibold"
+                  className="px-4 py-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl hover:bg-red-500/20 transition-all text-sm font-bold flex items-center gap-2"
                 >
+                  <X className="w-4 h-4" />
                   Удалить
                 </button>
               )}
               <button
                 onClick={onClose}
-                className="flex-1 py-2 bg-dark-bg border border-dark-border rounded-lg hover:bg-dark-hover transition-all text-sm font-semibold"
+                className="flex-1 py-3 bg-dark-bg border border-dark-border rounded-xl hover:bg-dark-hover transition-all text-sm font-bold text-gray-400"
               >
                 Отмена
               </button>
               <button
                 onClick={handleSave}
                 disabled={!name.trim()}
-                className="flex-1 py-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg hover:shadow-lg transition-all text-sm font-semibold disabled:opacity-50"
+                className="flex-1 py-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl hover:shadow-lg hover:shadow-blue-500/40 transition-all text-sm font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Сохранить
+                Сохранить умение
               </button>
             </div>
           </motion.div>

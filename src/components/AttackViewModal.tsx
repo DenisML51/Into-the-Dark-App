@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Attack, ATTRIBUTES_LIST } from '../types';
 import { Sword, Target, Zap } from 'lucide-react';
+import { MarkdownText } from './MarkdownText';
 
 interface AttackViewModalProps {
   isOpen: boolean;
@@ -64,7 +65,7 @@ export const AttackViewModal: React.FC<AttackViewModalProps> = ({
             {attack.description && (
               <div className="mb-6 p-4 bg-dark-bg rounded-xl border border-dark-border">
                 <div className="text-sm text-gray-400 mb-2">Описание</div>
-                <p className="text-white break-words">{attack.description}</p>
+                <MarkdownText content={attack.description} />
               </div>
             )}
 
@@ -128,7 +129,7 @@ export const AttackViewModal: React.FC<AttackViewModalProps> = ({
                 Закрыть
               </button>
               <button
-                onClick={() => { onEdit(); onClose(); }}
+                onClick={onEdit}
                 className="flex-1 py-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl hover:shadow-lg transition-all font-semibold"
               >
                 Редактировать

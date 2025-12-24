@@ -1,6 +1,8 @@
 import React from 'react';
 import { Character, InventoryItem } from '../../../../types';
 import { InventorySubTab } from '../../CharacterSheetLogic';
+import { MarkdownEditor } from '../../../MarkdownEditor';
+import { MarkdownText } from '../../../MarkdownText';
 
 interface InventoryTabProps {
   character: Character;
@@ -98,7 +100,7 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
                       )}
                     </div>
                     {item.description && (
-                      <div className="text-xs text-gray-400 mt-1 break-words overflow-wrap-anywhere">{item.description}</div>
+                      <MarkdownText content={item.description} className="text-xs text-gray-400 mt-1" />
                     )}
                     {item.type === 'weapon' && (
                       <div className="text-xs text-gray-400 mt-1 break-words">
@@ -185,20 +187,11 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
       {/* Text notes at the end */}
       <div className="mt-6">
         <div className="text-xs text-gray-400 mb-2 uppercase">Быстрые заметки</div>
-        <textarea
+        <MarkdownEditor
           value={character.inventoryNotes || ''}
-          onChange={(e) => {
-            updateInventoryNotes(e.target.value);
-            e.target.style.height = 'auto';
-            e.target.style.height = e.target.scrollHeight + 'px';
-          }}
-          onFocus={(e) => {
-            e.target.style.height = 'auto';
-            e.target.style.height = e.target.scrollHeight + 'px';
-          }}
+          onChange={updateInventoryNotes}
           placeholder="Список предметов в текстовом виде..."
-          className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none overflow-hidden"
-          style={{ minHeight: '60px' }}
+          minHeight="60px"
         />
       </div>
     </div>

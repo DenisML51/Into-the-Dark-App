@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Sword, Zap, Settings, Target } from 'lucide-react';
 import { Character, Attack } from '../../../../types';
+import { MarkdownEditor } from '../../../MarkdownEditor';
 
 interface AttacksTabProps {
   character: Character;
@@ -175,20 +176,11 @@ export const AttacksTab: React.FC<AttacksTabProps> = ({
       {/* Text notes at the end */}
       <div className="mt-6">
         <div className="text-xs text-gray-400 mb-2 uppercase">Заметки</div>
-        <textarea
+        <MarkdownEditor
           value={character.attacksNotes || ''}
-          onChange={(e) => {
-            updateAttacksNotes(e.target.value);
-            e.target.style.height = 'auto';
-            e.target.style.height = e.target.scrollHeight + 'px';
-          }}
-          onFocus={(e) => {
-            e.target.style.height = 'auto';
-            e.target.style.height = e.target.scrollHeight + 'px';
-          }}
+          onChange={updateAttacksNotes}
           placeholder="Дополнительные заметки об атаках..."
-          className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none overflow-hidden"
-          style={{ minHeight: '60px' }}
+          minHeight="60px"
         />
       </div>
     </div>

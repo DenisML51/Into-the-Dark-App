@@ -19,6 +19,7 @@ import { CurrencyModal } from '../../../CurrencyModal';
 import { TraitModal } from '../../../TraitModal';
 import { TraitViewModal } from '../../../TraitViewModal';
 import { BasicInfoModal } from '../../../BasicInfoModal';
+import { AmmunitionModal } from '../../../AmmunitionModal';
 import { ATTRIBUTES_LIST, Character, Resource, Limb, InventoryItem, Attack, Ability, Trait, Currency } from '../../../../types';
 
 interface CharacterSheetModalsProps {
@@ -65,6 +66,10 @@ interface CharacterSheetModalsProps {
   editingAbility: Ability | undefined;
   saveAbility: (ability: Ability) => void;
   deleteAbility: (abilityId: string) => void;
+  openAbilityModal: (ability?: Ability) => void;
+  openAttackModal: (attack?: Attack) => void;
+  openItemModal: (item?: InventoryItem) => void;
+  openTraitModal: (trait?: Trait) => void;
   showAmmunitionModal: boolean;
   setShowAmmunitionModal: (show: boolean) => void;
   updateAmmunitionQuantity: (itemId: string, delta: number) => void;
@@ -93,7 +98,6 @@ interface CharacterSheetModalsProps {
   viewingTrait: Trait | undefined;
   showTraitViewModal: boolean;
   setShowTraitViewModal: (show: boolean) => void;
-  openTraitModal: (trait: Trait) => void;
   showBasicInfoModal: boolean;
   setShowBasicInfoModal: (show: boolean) => void;
   showCurrencyModal: boolean;
@@ -146,6 +150,10 @@ export const CharacterSheetModals: React.FC<CharacterSheetModalsProps> = (props)
     editingAbility,
     saveAbility,
     deleteAbility,
+    openAbilityModal,
+    openAttackModal,
+    openItemModal,
+    openTraitModal,
     showAmmunitionModal,
     setShowAmmunitionModal,
     updateAmmunitionQuantity,
@@ -174,7 +182,6 @@ export const CharacterSheetModals: React.FC<CharacterSheetModalsProps> = (props)
     viewingTrait,
     showTraitViewModal,
     setShowTraitViewModal,
-    openTraitModal,
     showBasicInfoModal,
     setShowBasicInfoModal,
     showCurrencyModal,
@@ -281,88 +288,22 @@ export const CharacterSheetModals: React.FC<CharacterSheetModalsProps> = (props)
         onDelete={editingAbility ? () => deleteAbility(editingAbility.id) : undefined}
       />
 
-      <AnimatePresence>
-        {showAmmunitionModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setShowAmmunitionModal(false)}
-            className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4"
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-dark-card rounded-2xl border border-dark-border p-5 w-full max-w-md"
-            >
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">Боеприпасы</h2>
-                <button onClick={() => setShowAmmunitionModal(false)} className="w-7 h-7 rounded-lg hover:bg-dark-hover transition-all flex items-center justify-center">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              {character.inventory.filter(i => i.type === 'ammunition').length > 0 ? (
-                <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {character.inventory.filter(i => i.type === 'ammunition').map((ammo) => (
-                    <div key={ammo.id} className="bg-dark-bg rounded-lg p-3 border border-dark-border">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <Zap className="w-4 h-4 text-orange-400" />
-                          <h4 className="font-bold">{ammo.name}</h4>
-                        </div>
-                        <span className="text-lg font-bold">×{ammo.quantity || 0}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => updateAmmunitionQuantity(ammo.id, -1)}
-                          className="w-8 h-8 bg-red-500/20 border border-red-500/50 text-red-400 rounded hover:bg-red-500/30 transition-all font-bold"
-                        >
-                          −
-                        </button>
-                        <div className="flex-1 bg-dark-card rounded px-3 py-1.5 text-center text-sm">
-                          <span className="text-gray-400">Вес:</span> <span className="font-bold">{ammo.weight % 1 === 0 ? ammo.weight : ammo.weight.toFixed(1)}</span> • 
-                          <span className="text-gray-400 ml-2">Цена:</span> <span className="font-bold">{ammo.cost}</span>
-                        </div>
-                        <button
-                          onClick={() => updateAmmunitionQuantity(ammo.id, 1)}
-                          className="w-8 h-8 bg-green-500/20 border border-green-500/50 text-green-400 rounded hover:bg-green-500/30 transition-all font-bold"
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-gray-400 text-center py-8">
-                  <Zap className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">Нет боеприпасов</p>
-                  <p className="text-xs mt-1">Добавьте боеприпасы в инвентаре</p>
-                </div>
-              )}
-
-              <button
-                onClick={() => setShowAmmunitionModal(false)}
-                className="w-full mt-4 py-2 bg-dark-bg border border-dark-border rounded-lg hover:bg-dark-hover transition-all text-sm font-semibold"
-              >
-                Закрыть
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <AmmunitionModal
+        isOpen={showAmmunitionModal}
+        onClose={() => setShowAmmunitionModal(false)}
+        ammunition={character.inventory.filter(i => i.type === 'ammunition')}
+        onUpdateQuantity={updateAmmunitionQuantity}
+      />
 
       {viewingAttack && (
         <AttackViewModal
           isOpen={showAttackViewModal}
           onClose={() => setShowAttackViewModal(false)}
           attack={viewingAttack}
-          onEdit={() => { setEditingAttack(viewingAttack); setShowAttackModal(true); }}
+          onEdit={() => { 
+            setShowAttackViewModal(false);
+            setTimeout(() => openAttackModal(viewingAttack), 0);
+          }}
         />
       )}
 
@@ -372,7 +313,10 @@ export const CharacterSheetModals: React.FC<CharacterSheetModalsProps> = (props)
           onClose={() => setShowAbilityViewModal(false)}
           ability={viewingAbility}
           resource={viewingAbility.resourceId ? character.resources.find(r => r.id === viewingAbility.resourceId) : undefined}
-          onEdit={() => { setEditingAbility(viewingAbility); setShowAbilityModal(true); }}
+          onEdit={() => { 
+            setShowAbilityViewModal(false);
+            setTimeout(() => openAbilityModal(viewingAbility), 0);
+          }}
         />
       )}
 
@@ -381,7 +325,10 @@ export const CharacterSheetModals: React.FC<CharacterSheetModalsProps> = (props)
           isOpen={showItemViewModal}
           onClose={() => setShowItemViewModal(false)}
           item={viewingItem}
-          onEdit={() => { setEditingItem(viewingItem); setShowItemModal(true); }}
+          onEdit={() => { 
+            setShowItemViewModal(false);
+            setTimeout(() => openItemModal(viewingItem), 0);
+          }}
         />
       )}
 
@@ -392,7 +339,7 @@ export const CharacterSheetModals: React.FC<CharacterSheetModalsProps> = (props)
           resource={viewingResource}
           onEdit={() => { 
             setShowResourceViewModal(false);
-            openResourceModal(viewingResource); 
+            setTimeout(() => openResourceModal(viewingResource), 0);
           }}
           onUpdate={(updatedResource) => {
             const newResources = character.resources.map(r =>
@@ -418,7 +365,7 @@ export const CharacterSheetModals: React.FC<CharacterSheetModalsProps> = (props)
           trait={viewingTrait}
           onEdit={() => {
             setShowTraitViewModal(false);
-            openTraitModal(viewingTrait);
+            setTimeout(() => openTraitModal(viewingTrait), 0);
           }}
         />
       )}
