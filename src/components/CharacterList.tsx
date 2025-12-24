@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useCharacter } from '../context/CharacterContext';
 import { CharacterCard } from './CharacterCard';
-import { CharacterCreation } from './CharacterCreation';
+import { CharacterCreation } from './CharacterCreation/index';
 import { Plus, Upload, User } from 'lucide-react';
 
 export const CharacterList: React.FC = () => {

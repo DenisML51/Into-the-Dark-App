@@ -1,6 +1,6 @@
 import React from 'react';
 import { CharacterProvider, useCharacter } from './context/CharacterContext';
-import { CharacterSheet } from './components/CharacterSheet';
+import { CharacterSheet } from './components/CharacterSheet/index';
 import { CharacterList } from './components/CharacterList';
 import { Navbar } from './components/Navbar';
 

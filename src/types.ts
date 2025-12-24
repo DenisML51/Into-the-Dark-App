@@ -266,7 +266,20 @@ export const RACES: Race[] = [
   },
 ];
 
-export const CLASSES = [
+export interface Subclass {
+  id: string;
+  name: string;
+}
+
+export interface Class {
+  id: string;
+  name: string;
+  description: string;
+  mentalStrength?: number;
+  subclasses: Subclass[];
+}
+
+export const CLASSES: Class[] = [
   { 
     id: 'alchemist', 
     name: 'Алхимик', 
