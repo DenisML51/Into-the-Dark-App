@@ -15,12 +15,15 @@ export interface CharacterPreview {
 }
 
 export type TabType = 'personality' | 'health' | 'abilities' | 'spells' | 'attacks' | 'equipment' | 'inventory' | 'stats';
+export type ViewMode = 'tabs' | 'hotbar';
 
 interface CharacterContextType {
   character: Character | null;
   charactersList: CharacterPreview[];
   activeTab: TabType;
   setActiveTab: (tab: TabType) => void;
+  viewMode: ViewMode;
+  setViewMode: (mode: ViewMode) => void;
   updateCharacter: (character: Character | ((prev: Character) => Character), silent?: boolean) => void;
   updateResourceCount: (resourceId: string, delta: number) => void;
   logHistory: (message: string, type?: 'health' | 'sanity' | 'resource' | 'inventory' | 'exp' | 'other') => void;
@@ -112,6 +115,10 @@ export const CharacterProvider: React.FC<{ children: ReactNode }> = ({ children 
   const [charactersList, setCharactersList] = useState<CharacterPreview[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('personality');
+  const [viewMode, setViewMode] = useState<ViewMode>(
+    (localStorage.getItem('trpg_view_mode') as ViewMode) || 'tabs'
+  );
+
   const [settings, setSettings] = useState({
     storagePath: localStorage.getItem('trpg_storage_path'),
     autoSave: localStorage.getItem('trpg_auto_save') !== 'false',
@@ -532,6 +539,10 @@ export const CharacterProvider: React.FC<{ children: ReactNode }> = ({ children 
   }, []);
 
   useEffect(() => {
+    localStorage.setItem('trpg_view_mode', viewMode);
+  }, [viewMode]);
+
+  useEffect(() => {
     if (isLoaded) {
       loadCharactersList();
     }
@@ -544,6 +555,8 @@ export const CharacterProvider: React.FC<{ children: ReactNode }> = ({ children 
         charactersList,
         activeTab,
         setActiveTab,
+        viewMode,
+        setViewMode,
         updateCharacter,
         updateResourceCount,
         logHistory,

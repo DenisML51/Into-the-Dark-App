@@ -6,7 +6,7 @@ import { Navbar } from './components/Navbar';
 import { Toaster } from 'react-hot-toast';
 
 const AppContent: React.FC = () => {
-  const { character } = useCharacter();
+  const { character, viewMode } = useCharacter();
   
   return (
     <div className="relative min-h-screen bg-dark-bg text-white">

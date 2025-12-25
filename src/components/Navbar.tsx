@@ -45,7 +45,16 @@ const tabs: { id: TabType; label: string; icon: any }[] = [
 ];
 
 export const Navbar: React.FC = () => {
-  const { character, activeTab, setActiveTab, goToCharacterList, exportToJSON, updateResourceCount } = useCharacter();
+  const { 
+    character, 
+    activeTab, 
+    setActiveTab, 
+    goToCharacterList, 
+    exportToJSON, 
+    updateResourceCount,
+    viewMode,
+    setViewMode
+  } = useCharacter();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [isXl, setIsXl] = useState(window.innerWidth < 1280);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -89,14 +98,19 @@ export const Navbar: React.FC = () => {
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
-          <div className="truncate">
-            <h1 className="text-lg font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent truncate">
+          <button
+            onClick={() => setViewMode(viewMode === 'tabs' ? 'hotbar' : 'tabs')}
+            className="truncate text-left group"
+            title={viewMode === 'tabs' ? 'Переключить в боевой режим (BG3)' : 'Вернуться к вкладкам'}
+          >
+            <h1 className="text-lg font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent truncate group-hover:from-blue-300 group-hover:to-purple-400 transition-all">
               {character.name.split(' ')[0].replace(/[.,!?;:]+$/, '')}
             </h1>
-            <p className="text-[10px] text-gray-400 uppercase tracking-wider truncate">
+            <p className="text-[10px] text-gray-400 uppercase tracking-wider truncate flex items-center gap-1.5">
               {character.class} • {character.level} ур.
+              {viewMode === 'hotbar' && <Activity className="w-2.5 h-2.5 text-blue-400 animate-pulse" />}
             </p>
-          </div>
+          </button>
         </div>
 
         {/* Center: Tabs */}
@@ -108,18 +122,23 @@ export const Navbar: React.FC = () => {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`relative flex items-center justify-center gap-0 lg:hover:gap-3 px-3 lg:px-4 py-2.5 rounded-xl transition-all group ${
+                onClick={() => viewMode !== 'hotbar' && setActiveTab(tab.id)}
+                disabled={viewMode === 'hotbar'}
+                className={`relative flex items-center justify-center gap-0 px-3 lg:px-4 py-2.5 rounded-xl transition-all group ${
+                  viewMode !== 'hotbar' ? 'lg:hover:gap-3' : ''
+                } ${
                   isActive 
                     ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25' 
-                    : 'text-gray-400 hover:text-gray-200 hover:bg-dark-card/50'
-                }`}
+                    : `text-gray-400 ${viewMode !== 'hotbar' ? 'hover:text-gray-200 hover:bg-dark-card/50' : ''}`
+                } ${viewMode === 'hotbar' ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <Icon className="w-5 h-5 lg:w-6 lg:h-6 flex-shrink-0" />
                 
                 <span
                   className={`overflow-hidden whitespace-nowrap text-sm font-bold transition-all duration-300 ${
-                    isActive ? 'max-w-0 lg:max-w-[200px] lg:opacity-100 lg:ml-3' : 'max-w-0 opacity-0 lg:group-hover:max-w-[200px] lg:group-hover:opacity-100 lg:group-hover:ml-3'
+                    isActive 
+                      ? 'max-w-0 lg:max-w-[200px] lg:opacity-100 lg:ml-3' 
+                      : `max-w-0 opacity-0 ${viewMode !== 'hotbar' ? 'lg:group-hover:max-w-[200px] lg:group-hover:opacity-100 lg:group-hover:ml-3' : ''}`
                   }`}
                 >
                   {tab.label}
@@ -131,39 +150,41 @@ export const Navbar: React.FC = () => {
 
         {/* Right: Resources, Currency, Ammo, Menu */}
         <div className="flex items-center gap-2">
-          {/* Resources - Only on desktop */}
-          <div className="hidden xl:flex items-center gap-2">
-            {resourcesWithValues.map(resource => {
-              return (
-                <div 
-                  key={resource.id}
-                  onClick={() => updateResourceCount(resource.id, -1)}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    window.dispatchEvent(new CustomEvent('open-character-modal', { 
-                      detail: { type: 'resource', data: resource } 
-                    }));
-                  }}
-                  className="relative group cursor-pointer"
-                >
-                  <div className="w-12 h-12 bg-dark-bg/80 border border-dark-border/50 rounded-xl flex items-center justify-center hover:border-blue-500/50 hover:bg-dark-hover transition-all active:scale-95 shadow-lg">
-                    {getLucideIcon(resource.iconName, { className: "w-6 h-6 text-blue-400" })}
-                    <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-sm border border-dark-bg">
-                      {resource.current}
+          {/* Resources - Only on desktop and when NOT in hotbar mode */}
+          {viewMode !== 'hotbar' && (
+            <div className="hidden xl:flex items-center gap-2">
+              {resourcesWithValues.map(resource => {
+                return (
+                  <div 
+                    key={resource.id}
+                    onClick={() => updateResourceCount(resource.id, -1)}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      window.dispatchEvent(new CustomEvent('open-character-modal', { 
+                        detail: { type: 'resource', data: resource } 
+                      }));
+                    }}
+                    className="relative group cursor-pointer"
+                  >
+                    <div className="w-12 h-12 bg-dark-bg/80 border border-dark-border/50 rounded-xl flex items-center justify-center hover:border-blue-500/50 hover:bg-dark-hover transition-all active:scale-95 shadow-lg">
+                      {getLucideIcon(resource.iconName, { className: "w-6 h-6 text-blue-400" })}
+                      <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-sm border border-dark-bg">
+                        {resource.current}
+                      </div>
+                    </div>
+                    {/* Tooltip */}
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-2 bg-dark-card border border-dark-border rounded-lg text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-2xl">
+                      <div className="font-bold text-gray-200">{resource.name}: {resource.current}/{resource.max}</div>
+                      <div className="text-gray-500 mt-1">ЛКМ: -1 • ПКМ: просмотр</div>
                     </div>
                   </div>
-                  {/* Tooltip */}
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-2 bg-dark-card border border-dark-border rounded-lg text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-2xl">
-                    <div className="font-bold text-gray-200">{resource.name}: {resource.current}/{resource.max}</div>
-                    <div className="text-gray-500 mt-1">ЛКМ: -1 • ПКМ: просмотр</div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
 
-          {/* Ammo - Only on desktop */}
-          {totalAmmo > 0 && (
+          {/* Ammo - Only on desktop and when NOT in hotbar mode */}
+          {viewMode !== 'hotbar' && totalAmmo > 0 && (
             <div 
               onClick={() => {
                 window.dispatchEvent(new CustomEvent('open-character-modal', { 
@@ -186,27 +207,29 @@ export const Navbar: React.FC = () => {
             </div>
           )}
 
-          {/* Currency - Only on desktop */}
-          <div 
-            onClick={() => {
-              window.dispatchEvent(new CustomEvent('open-character-modal', { 
-                detail: { type: 'currency' } 
-              }));
-            }}
-            className="hidden lg:relative lg:group lg:cursor-pointer lg:flex"
-          >
-            <div className="w-12 h-12 bg-dark-bg/80 border border-dark-border/50 rounded-xl flex items-center justify-center hover:border-yellow-500/50 hover:bg-dark-hover transition-all active:scale-95 shadow-lg">
-              <Coins className="w-6 h-6 text-yellow-500" />
-              <div className="absolute -bottom-1 -right-1 min-w-[20px] px-1 h-5 bg-yellow-500 rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-sm border border-dark-bg">
-                {Math.floor(character.currency.gold + character.currency.silver / 10 + character.currency.copper / 100)}
+          {/* Currency - Only on desktop and when NOT in hotbar mode */}
+          {viewMode !== 'hotbar' && (
+            <div 
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('open-character-modal', { 
+                  detail: { type: 'currency' } 
+                }));
+              }}
+              className="hidden lg:relative lg:group lg:cursor-pointer lg:flex"
+            >
+              <div className="w-12 h-12 bg-dark-bg/80 border border-dark-border/50 rounded-xl flex items-center justify-center hover:border-yellow-500/50 hover:bg-dark-hover transition-all active:scale-95 shadow-lg">
+                <Coins className="w-6 h-6 text-yellow-500" />
+                <div className="absolute -bottom-1 -right-1 min-w-[20px] px-1 h-5 bg-yellow-500 rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-sm border border-dark-bg">
+                  {Math.floor(character.currency.gold + character.currency.silver / 10 + character.currency.copper / 100)}
+                </div>
+              </div>
+              {/* Tooltip */}
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-2 bg-dark-card border border-dark-border rounded-lg text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-2xl">
+                <div className="font-bold text-gray-200">Валюта: {(character.currency.gold + character.currency.silver / 10 + character.currency.copper / 100).toFixed(2)} ЗМ</div>
+                <div className="text-gray-500 mt-1">Клик: управление кошельком</div>
               </div>
             </div>
-            {/* Tooltip */}
-            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-2 bg-dark-card border border-dark-border rounded-lg text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-2xl">
-              <div className="font-bold text-gray-200">Валюта: {(character.currency.gold + character.currency.silver / 10 + character.currency.copper / 100).toFixed(2)} ЗМ</div>
-              <div className="text-gray-500 mt-1">Клик: управление кошельком</div>
-            </div>
-          </div>
+          )}
 
           {/* Menu */}
           <div className="relative ml-2">

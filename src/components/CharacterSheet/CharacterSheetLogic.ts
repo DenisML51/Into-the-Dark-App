@@ -21,7 +21,9 @@ export const useCharacterSheetLogic = () => {
     setActiveTab, 
     updateResourceCount,
     logHistory,
-    settings
+    settings,
+    viewMode,
+    setViewMode,
   } = useCharacter();
   
   const [inventorySubTab, setInventorySubTab] = useState<InventorySubTab>('all');
@@ -55,6 +57,8 @@ export const useCharacterSheetLogic = () => {
     setInventorySubTab,
     selectedAttribute,
     setSelectedAttribute,
+    viewMode,
+    setViewMode,
     race,
     selectedSubrace,
     charClass,
