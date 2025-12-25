@@ -134,6 +134,7 @@ export const useCharacterCreationLogic = (onComplete?: () => void) => {
       tempHP: 0,
       maxHPBonus: 0,
       limbs,
+      resistances: [],
       inventory: [],
       inventoryNotes: '',
       attacksNotes: '',
