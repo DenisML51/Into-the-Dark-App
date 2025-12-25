@@ -228,6 +228,16 @@ export interface Character {
   conditions: string[]; // List of condition IDs
   avatar?: string; // Base64 avatar image
   history?: HistoryEntry[];
+  actionLimits?: {
+    action: number;
+    bonus: number;
+    reaction: number;
+  };
+  spentActions?: {
+    action: number;
+    bonus: number;
+    reaction: number;
+  };
 }
 
 export const calculateLimbMaxHP = (maxHP: number, constitution: number): number => {

@@ -20,6 +20,7 @@ import {
   Brain,
   Gavel,
   Plus,
+  Minus,
   X,
   ShieldCheck,
   ShieldAlert,
@@ -108,11 +109,39 @@ export const HotbarView: React.FC<HotbarViewProps> = ({
   // Combat State
   const [isInCombat, setIsInCombat] = useState(false);
   const [initiative, setInitiative] = useState<number | null>(null);
-  const [spentActions, setSpentActions] = useState({
-    action: false,
-    bonus: false,
-    reaction: false
-  });
+  const [editingActionId, setEditingActionId] = useState<string | null>(null);
+
+  // Initialize actions from character or defaults
+  const actionLimits = character.actionLimits || { action: 1, bonus: 1, reaction: 1 };
+  const spentActions = character.spentActions || { action: 0, bonus: 0, reaction: 0 };
+
+  const toggleAction = (id: 'action' | 'bonus' | 'reaction', index: number) => {
+    const currentSpent = spentActions[id];
+    // If we click on a spent action, we might want to unspend it, or if we click on an unspent one, spend it.
+    // Simpler logic: if index < spent, we are clicking a spent one. If index >= spent, an unspent one.
+    let newSpent = currentSpent;
+    if (index < currentSpent) {
+      newSpent = index; // Unspend this and all after it
+    } else {
+      newSpent = index + 1; // Spend this and all before it
+    }
+
+    updateCharacter({
+      ...character,
+      spentActions: { ...spentActions, [id]: newSpent }
+    });
+  };
+
+  const updateActionLimit = (id: 'action' | 'bonus' | 'reaction', limit: number) => {
+    const newLimits = { ...actionLimits, [id]: Math.max(1, limit) };
+    const newSpent = { ...spentActions, [id]: Math.min(spentActions[id], newLimits[id]) };
+    
+    updateCharacter({
+      ...character,
+      actionLimits: newLimits,
+      spentActions: newSpent
+    });
+  };
 
   // Subclass Icon logic
   const charClass = useMemo(() => CLASSES.find(c => c.id === character.class), [character.class]);
@@ -125,7 +154,8 @@ export const HotbarView: React.FC<HotbarViewProps> = ({
     const attacks = (character.attacks || []).map(a => ({ ...a, hotbarType: 'attack' }));
     const abilities = (character.abilities || []).map(a => ({ ...a, hotbarType: 'ability' }));
     const spells = (character.spells || []).filter(s => s.prepared).map(s => ({ ...s, hotbarType: 'spell' }));
-    const items = (character.inventory || []).filter(i => i.equipped || i.type === 'item').map(i => ({ ...i, hotbarType: 'item' }));
+    // Filter items to EXCLUDE weapons and armor (only keep type 'item')
+    const items = (character.inventory || []).filter(i => i.type === 'item').map(i => ({ ...i, hotbarType: 'item' }));
     
     return { attacks, abilities, spells, items };
   }, [character]);
@@ -144,7 +174,10 @@ export const HotbarView: React.FC<HotbarViewProps> = ({
   };
 
   const nextTurn = () => {
-    setSpentActions({ action: false, bonus: false, reaction: false });
+    updateCharacter({
+      ...character,
+      spentActions: { action: 0, bonus: 0, reaction: 0 }
+    });
   };
 
   const endCombat = () => {
@@ -331,170 +364,6 @@ export const HotbarView: React.FC<HotbarViewProps> = ({
     <>
       <div className="fixed bottom-6 left-0 right-0 z-[40] flex flex-col items-center pointer-events-none px-4">
         
-        {/* Upper Section: Resources, Actions & Combat Stats */}
-        <div className="flex flex-wrap items-center justify-center gap-4 mb-4 pointer-events-auto">
-          
-          {/* Action Trackers (BG3 style dots) */}
-          <div className="flex items-center gap-1 px-2 py-1.5 bg-dark-bg/95 backdrop-blur-3xl border border-white/10 rounded-[1.25rem] shadow-2xl relative overflow-hidden group/actions">
-            <div className="absolute inset-0 bg-white/[0.02] pointer-events-none" />
-            {[
-              { id: 'action', icon: Circle, color: '#3b82f6', title: 'Основное действие', label: 'А' },
-              { id: 'bonus', icon: Triangle, color: '#22c55e', title: 'Бонусное действие', label: 'Б' },
-              { id: 'reaction', icon: Zap, color: '#f97316', title: 'Реакция', label: 'Р' }
-            ].map(act => (
-              <button
-                key={act.id}
-                onClick={() => setSpentActions(prev => ({ ...prev, [act.id]: !spentActions[act.id as keyof typeof spentActions] }))}
-                className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all relative group/act ${
-                  spentActions[act.id as keyof typeof spentActions] 
-                    ? 'bg-red-500/20 border-red-500/50 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)]' 
-                    : 'bg-dark-card border-white/10 hover:border-white/20'
-                }`}
-                style={{ 
-                  borderColor: !spentActions[act.id as keyof typeof spentActions] ? `${act.color}60` : undefined,
-                  color: !spentActions[act.id as keyof typeof spentActions] ? act.color : undefined
-                }}
-                title={act.title}
-              >
-                {!spentActions[act.id as keyof typeof spentActions] && (
-                  <div 
-                    className="absolute inset-0 rounded-full opacity-10 blur-sm group-hover/act:opacity-20 transition-opacity" 
-                    style={{ backgroundColor: act.color }} 
-                  />
-                )}
-                <act.icon 
-                  size={14} 
-                  className={`relative z-10 transition-transform ${spentActions[act.id as keyof typeof spentActions] ? 'opacity-50' : 'drop-shadow-[0_0_8px_rgba(0,0,0,0.5)]'}`}
-                />
-                {spentActions[act.id as keyof typeof spentActions] && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-full h-0.5 bg-red-500/50 rotate-45 absolute" />
-                    <div className="w-full h-0.5 bg-red-500/50 -rotate-45 absolute" />
-                  </div>
-                )}
-              </button>
-            ))}
-          </div>
-
-          {/* Resources & Currency */}
-          <div className="flex items-center gap-1 px-2 py-1.5 bg-dark-bg/95 backdrop-blur-3xl border border-white/10 rounded-[1.25rem] shadow-2xl relative">
-            <div className="absolute inset-0 bg-white/[0.02] pointer-events-none rounded-[1.25rem]" />
-            {character.resources.filter(r => r.max > 0).map(res => (
-              <div 
-                key={res.id}
-                onClick={() => updateResourceCount(res.id, -1)}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  window.dispatchEvent(new CustomEvent('open-character-modal', { detail: { type: 'resource', data: res } }));
-                }}
-                className={`relative group cursor-pointer w-10 h-10 bg-dark-card/30 border rounded-xl flex items-center justify-center transition-all ${
-                  res.current === 0 ? 'border-red-500/50 bg-red-500/5' : 'border-white/5 hover:border-blue-500/30 hover:bg-white/5'
-                }`}
-              >
-                {getLucideIcon(res.iconName, { size: 18, className: res.current === 0 ? "text-red-400" : "text-blue-400" })}
-                <span className={`absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center text-[9px] font-black text-white shadow-lg border border-dark-bg ${
-                  res.current === 0 ? 'bg-red-500' : 'bg-blue-500'
-                }`}>
-                  {res.current}
-                </span>
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 px-5 py-3 bg-dark-card border border-dark-border rounded-xl text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-2xl">
-                  <div className="font-bold text-gray-200">{res.name}: {res.current}/{res.max}</div>
-                  <div className="text-gray-400 mt-1.5 text-[11px]">ЛКМ: -1 • ПКМ: просмотр</div>
-                </div>
-              </div>
-            ))}
-
-            <div className="w-px h-6 bg-white/10 mx-1" />
-
-            <div 
-              onClick={() => window.dispatchEvent(new CustomEvent('open-character-modal', { detail: { type: 'currency' } }))}
-              className="flex items-center gap-2 px-3 py-1.5 hover:bg-white/5 rounded-xl cursor-pointer transition-all border border-transparent hover:border-white/5 group/currency relative"
-            >
-              <Coins size={16} className="text-yellow-500 group-hover/currency:scale-110 transition-transform" />
-              <span className="text-xs font-bold text-gray-300">
-                {Math.floor(character.currency.gold + character.currency.silver/10 + character.currency.copper/100)}
-              </span>
-              
-              {/* Currency Tooltip */}
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 px-5 py-3 bg-dark-card border border-dark-border rounded-xl text-sm whitespace-nowrap opacity-0 group-hover/currency:opacity-100 transition-opacity pointer-events-none z-50 shadow-2xl">
-                <div className="font-bold text-gray-200">Валюта: {(character.currency.gold + character.currency.silver/10 + character.currency.copper/100).toFixed(2)} ЗМ</div>
-                <div className="text-gray-400 mt-1.5 text-[11px]">Клик: управление кошельком</div>
-              </div>
-            </div>
-
-            {character.inventory.filter(i => i.type === 'ammunition').length > 0 && (
-              <div 
-                onClick={() => window.dispatchEvent(new CustomEvent('open-character-modal', { detail: { type: 'ammunition' } }))}
-                className="flex items-center gap-2 px-3 py-1.5 hover:bg-white/5 rounded-xl cursor-pointer transition-all border border-transparent hover:border-white/5 group/ammo relative"
-              >
-                <Target size={16} className="text-orange-400 group-hover/ammo:scale-110 transition-transform" />
-                <span className="text-xs font-bold text-gray-300">
-                  {character.inventory.filter(i => i.type === 'ammunition').reduce((sum, i) => sum + (i.quantity || 0), 0)}
-                </span>
-
-                {/* Ammo Tooltip */}
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 px-5 py-3 bg-dark-card border border-dark-border rounded-xl text-sm whitespace-nowrap opacity-0 group-hover/ammo:opacity-100 transition-opacity pointer-events-none z-50 shadow-2xl">
-                  <div className="font-bold text-gray-200">Боеприпасы: {character.inventory.filter(i => i.type === 'ammunition').reduce((sum, i) => sum + (i.quantity || 0), 0)} шт</div>
-                  <div className="text-gray-400 mt-1.5 text-[11px]">Нажми для управления</div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Combat Stats (AC, Initiative, Prof) */}
-          <div className="flex items-center gap-6 px-6 py-2 bg-dark-bg/95 backdrop-blur-3xl border border-white/10 rounded-[1.25rem] shadow-2xl relative overflow-hidden">
-            <div className="absolute inset-0 bg-white/[0.02] pointer-events-none" />
-            <div 
-              className="flex flex-col items-center cursor-pointer group/stat transition-all"
-              onClick={() => setShowACModal(true)}
-            >
-              <span className="text-[7px] font-black text-gray-500 uppercase tracking-[0.2em] mb-0.5">DEFENSE</span>
-              <div className="flex items-center gap-2">
-                <Shield size={14} className="text-blue-400 group-hover/stat:scale-110 transition-transform" />
-                <span className="text-sm font-black text-blue-100">{character.armorClass}</span>
-              </div>
-            </div>
-            
-            <div className="w-px h-8 bg-white/10" />
-
-            <div 
-              className="flex flex-col items-center cursor-pointer group/stat transition-all"
-              onClick={startCombat}
-            >
-              <span className="text-[7px] font-black text-gray-500 uppercase tracking-[0.2em] mb-0.5">INITIATIVE</span>
-              <div className="flex items-center gap-2">
-                <Activity size={14} className="text-amber-400 group-hover/stat:scale-110 transition-transform" />
-                <span className="text-sm font-black text-amber-100">
-                  {initiative !== null 
-                    ? `+${initiative}` 
-                    : `${getModifier('dexterity') >= 0 ? '+' : ''}${getModifier('dexterity')}${character.initiativeBonus ? ` + ${character.initiativeBonus}` : ''}`
-                  }
-                </span>
-              </div>
-            </div>
-
-            <div className="w-px h-8 bg-white/10" />
-
-            <div className="flex flex-col items-center group/stat transition-all">
-              <span className="text-[7px] font-black text-gray-500 uppercase tracking-[0.2em] mb-0.5">PROFICIENCY</span>
-              <div className="flex items-center gap-2">
-                <Target size={14} className="text-purple-400 group-hover/stat:scale-110 transition-transform" />
-                <span className="text-sm font-black text-purple-100">+{character.proficiencyBonus}</span>
-              </div>
-            </div>
-
-            <div className="w-px h-8 bg-white/10" />
-
-            <div className="flex flex-col items-center group/stat transition-all">
-              <span className="text-[7px] font-black text-gray-500 uppercase tracking-[0.2em] mb-0.5">SPEED</span>
-              <div className="flex items-center gap-2">
-                <Wind size={14} className="text-green-400 group-hover/stat:scale-110 transition-transform" />
-                <span className="text-sm font-black text-green-100">{character.speed}фт</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Main Hotbar System */}
         <div className="flex items-end gap-4 max-w-[95vw] pointer-events-auto">
           
@@ -655,15 +524,15 @@ export const HotbarView: React.FC<HotbarViewProps> = ({
                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 p-3 bg-dark-bg/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl z-[1002] w-64"
+                    className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 p-4 bg-dark-bg/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl z-[1002] w-80"
                   >
-                    <div className="flex items-center justify-between mb-2 pb-2 border-b border-white/5">
-                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Состояния</span>
-                      <button onClick={() => setShowConditionPicker(false)} className="text-gray-500 hover:text-white">
-                        <X size={12} />
+                    <div className="flex items-center justify-between mb-3 pb-3 border-b border-white/5">
+                      <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Состояния</span>
+                      <button onClick={() => setShowConditionPicker(false)} className="text-gray-500 hover:text-white p-1">
+                        <X size={14} />
                       </button>
                     </div>
-                    <div className="grid grid-cols-2 gap-1 max-h-48 overflow-y-auto custom-scrollbar pr-1">
+                    <div className="grid grid-cols-2 gap-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-1">
                       {CONDITIONS.map(cond => {
                         const isActive = character.conditions?.includes(cond.id);
                         return (
@@ -674,9 +543,9 @@ export const HotbarView: React.FC<HotbarViewProps> = ({
                               const next = isActive ? current.filter(id => id !== cond.id) : [...current, cond.id];
                               updateCharacter({ ...character, conditions: next });
                             }}
-                            className={`text-left px-2 py-1.5 rounded-lg text-[10px] transition-all border ${
+                            className={`text-left px-3 py-2 rounded-xl text-xs transition-all border ${
                               isActive 
-                                ? 'bg-orange-500/20 text-orange-400 border-orange-500/30' 
+                                ? 'bg-orange-500/20 text-orange-400 border-orange-500/30 font-bold' 
                                 : 'bg-white/5 text-gray-400 border-transparent hover:bg-white/10'
                             }`}
                           >
@@ -720,146 +589,305 @@ export const HotbarView: React.FC<HotbarViewProps> = ({
           </div>
 
           {/* Center Section: Hotbar Actions & XP Bar */}
-          <div className="flex flex-col gap-2 flex-1 min-w-[600px] max-w-[1000px]">
-            <div className="flex flex-col gap-0 bg-dark-bg/95 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] shadow-2xl overflow-hidden relative group/hotbar w-full">
-              {/* Decorative inner border/glow */}
-              <div className="absolute inset-0 rounded-[2.5rem] border border-white/5 pointer-events-none" />
+          <div className="flex flex-col gap-3 flex-1 min-w-[800px] max-w-[1400px]">
+            {/* Upper Section: Resources, Actions & Combat Stats */}
+            <div className="flex flex-wrap items-center justify-center gap-4 mb-1 pointer-events-auto">
               
-              {/* Category Tabs - Minimalist Design */}
-              <div className="flex items-center gap-1 px-6 pt-4 pb-2 relative z-10">
+              {/* Action Trackers (BG3 style dots) */}
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-dark-bg/95 backdrop-blur-3xl border border-white/10 rounded-[1.25rem] shadow-2xl relative group/actions">
+                <div className="absolute inset-0 bg-white/[0.02] pointer-events-none" />
                 {[
-                  { id: 'all', label: 'Все', icon: Activity },
-                  { id: 'attacks', label: 'Атаки', icon: Sword },
-                  { id: 'abilities', label: 'Умения', icon: Sparkles },
-                  { id: 'spells', label: 'Магия', icon: Wand2 },
-                  { id: 'items', label: 'Вещи', icon: Box },
-                ].map(cat => (
-                  <button
-                    key={cat.id}
-                    onClick={() => setActiveCategory(cat.id as any)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all relative group/tab ${
-                      activeCategory === cat.id 
-                        ? 'text-blue-400' 
-                        : 'text-gray-500 hover:text-gray-300'
-                    }`}
-                  >
-                    {activeCategory === cat.id && (
-                      <motion.div 
-                        layoutId="activeTabPill"
-                        className="absolute inset-0 bg-blue-500/10 border border-blue-500/20 rounded-xl shadow-[0_0_15px_rgba(59,130,246,0.1)]"
-                        initial={false}
-                        transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
-                      />
-                    )}
-                    <cat.icon size={14} className="relative z-10" />
-                    <span className="hidden sm:inline relative z-10">{cat.label}</span>
-                    
-                    {/* Bottom Indicator Line */}
-                    {activeCategory === cat.id && (
-                      <motion.div 
-                        layoutId="activeTabLine"
-                        className="absolute -bottom-1 left-4 right-4 h-0.5 bg-blue-500 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]"
-                        transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
-                      />
-                    )}
-                  </button>
+                  { id: 'action' as const, icon: Circle, color: '#3b82f6', title: 'Основное действие' },
+                  { id: 'bonus' as const, icon: Triangle, color: '#22c55e', title: 'Бонусное действие' },
+                  { id: 'reaction' as const, icon: Zap, color: '#f97316', title: 'Реакция' }
+                ].map(act => (
+                  <div key={act.id} className="flex gap-1 relative group/act-group">
+                    {Array.from({ length: actionLimits[act.id] }).map((_, i) => {
+                      const isSpent = i < spentActions[act.id];
+                      return (
+                        <button
+                          key={`${act.id}-${i}`}
+                          onClick={() => toggleAction(act.id, i)}
+                          onContextMenu={(e) => {
+                            e.preventDefault();
+                            setEditingActionId(act.id);
+                          }}
+                          className={`w-9 h-9 rounded-full border-2 flex items-center justify-center transition-all relative group/act ${
+                            isSpent 
+                              ? 'bg-red-500/20 border-red-500/50 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.1)]' 
+                              : 'bg-dark-card border-white/10 hover:border-white/20'
+                          }`}
+                          style={{ 
+                            borderColor: !isSpent ? `${act.color}60` : undefined,
+                            color: !isSpent ? act.color : undefined
+                          }}
+                          title={`${act.title} ${i + 1}/${actionLimits[act.id]}`}
+                        >
+                          {!isSpent && (
+                            <div 
+                              className="absolute inset-0 rounded-full opacity-10 blur-sm group-hover/act:opacity-20 transition-opacity" 
+                              style={{ backgroundColor: act.color }} 
+                            />
+                          )}
+                          <act.icon 
+                            size={14} 
+                            className={`relative z-10 transition-transform ${isSpent ? 'opacity-50' : 'drop-shadow-[0_0_8px_rgba(0,0,0,0.5)]'}`}
+                          />
+                          {isSpent && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="w-full h-0.5 bg-red-500/50 rotate-45 absolute" />
+                              <div className="w-full h-0.5 bg-red-500/50 -rotate-45 absolute" />
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+
+                    {/* Action Limit Popover */}
+                    <AnimatePresence>
+                      {editingActionId === act.id && (
+                        <>
+                          <div className="fixed inset-0 z-[1001]" onClick={() => setEditingActionId(null)} />
+                          <motion.div
+                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                            className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 p-4 bg-dark-bg/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl z-[1002] min-w-[180px]"
+                          >
+                            <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 text-center border-b border-white/5 pb-2">
+                              {act.title}
+                            </div>
+                            <div className="flex items-center justify-between gap-4">
+                              <span className="text-[10px] text-gray-500 font-bold uppercase whitespace-nowrap">Кол-во за ход:</span>
+                              <div className="flex items-center gap-3">
+                                <button 
+                                  onClick={() => updateActionLimit(act.id, actionLimits[act.id] - 1)}
+                                  className="w-6 h-6 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400"
+                                >
+                                  <Minus size={12} />
+                                </button>
+                                <span className="text-sm font-bold text-white min-w-[1ch] text-center">{actionLimits[act.id]}</span>
+                                <button 
+                                  onClick={() => updateActionLimit(act.id, actionLimits[act.id] + 1)}
+                                  className="w-6 h-6 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400"
+                                >
+                                  <Plus size={12} />
+                                </button>
+                              </div>
+                            </div>
+                          </motion.div>
+                        </>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 ))}
               </div>
 
-              {/* Action Slots Container - Fixed Height and Width to prevent jumping */}
-              <div className="px-4 pb-4 relative z-10 w-full">
-                <div className="flex flex-wrap gap-2 p-4 bg-black/40 rounded-[2rem] h-[168px] w-full overflow-y-auto custom-scrollbar content-start relative border border-white/5 shadow-inner">
-                <AnimatePresence mode="popLayout">
-                  {activeCategory === 'all' ? (
-                    <>
-                      {[
-                        { data: actionGroups.attacks, color: '#ef4444' },
-                        { data: actionGroups.abilities, color: '#a855f7' },
-                        { data: actionGroups.spells, color: '#3b82f6' },
-                        { data: actionGroups.items, color: '#94a3b8' }
-                      ].map((group, groupIdx, arr) => (
-                        <React.Fragment key={groupIdx}>
-                          {group.data.map((action, idx) => (
-                            <motion.div
-                              key={action.id + idx}
-                              layout
-                              initial={{ opacity: 0, scale: 0.8 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              exit={{ opacity: 0, scale: 0.8 }}
-                              onClick={() => {
-                                const a = action as any;
-                                if (a.hotbarType === 'spell') openSpellView(a);
-                                else if (a.hotbarType === 'attack') openAttackView(a);
-                                else if (a.hotbarType === 'ability') openAbilityView(a);
-                                else if (a.hotbarType === 'item') openItemView(a);
-                              }}
-                              onMouseEnter={(e) => handleItemHover(action, e.currentTarget.getBoundingClientRect())}
-                              onMouseLeave={handleItemUnhover}
-                              className="relative w-14 h-14 bg-dark-card/80 border border-white/5 rounded-2xl flex items-center justify-center cursor-pointer hover:scale-105 hover:bg-dark-card active:scale-95 transition-all shadow-xl"
-                              style={{ 
-                                borderColor: hoveredItem?.id === action.id ? `${group.color}60` : undefined,
-                                boxShadow: hoveredItem?.id === action.id ? `0 0 20px ${group.color}20` : undefined
-                              }}
-                            >
-                              {getLucideIcon(
-                                (action as any).hotbarType === 'spell' ? ((action as any).iconName || 'Wand2') : 
-                                (action as any).hotbarType === 'attack' ? ((action as any).iconName || ((action as any).weaponId ? 'Sword' : 'Zap')) :
-                                (action as any).hotbarType === 'ability' ? ((action as any).iconName || 'Zap') :
-                                ((action as any).type === 'weapon' ? 'Sword' : (action as any).type === 'armor' ? 'Shield' : 'Box'),
-                                { size: 28, style: { color: (action as any).color || group.color } }
-                              )}
-                              {(action as any).actionType && (
-                                <div 
-                                  className="absolute bottom-1.5 right-1.5 w-2.5 h-2.5 rounded-full border-2 border-dark-bg"
-                                  style={{ backgroundColor: (action as any).actionType === 'bonus' ? '#22c55e' : (action as any).actionType === 'reaction' ? '#f97316' : '#3b82f6' }}
-                                />
-                              )}
-                            </motion.div>
-                          ))}
-                          {group.data.length > 0 && groupIdx < arr.length - 1 && arr.slice(groupIdx + 1).some(g => g.data.length > 0) && (
-                            <div className="w-px h-10 bg-white/10 self-center mx-2 shrink-0" />
-                          )}
-                        </React.Fragment>
-                      ))}
-                    </>
-                  ) : (
-                    filteredActions.map((action, idx) => (
-                      <motion.div
-                        key={action.id + idx}
-                        layout
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.8 }}
-                        onClick={() => {
-                          const a = action as any;
-                          if (a.hotbarType === 'spell') openSpellView(a);
-                          else if (a.hotbarType === 'attack') openAttackView(a);
-                          else if (a.hotbarType === 'ability') openAbilityView(a);
-                          else if (a.hotbarType === 'item') openItemView(a);
-                        }}
-                        onMouseEnter={(e) => handleItemHover(action, e.currentTarget.getBoundingClientRect())}
-                        onMouseLeave={handleItemUnhover}
-                        className="relative w-14 h-14 bg-dark-card/80 border border-white/5 rounded-2xl flex items-center justify-center cursor-pointer hover:scale-105 hover:bg-dark-card active:scale-95 transition-all shadow-xl"
+              {/* Resources & Currency */}
+              <div className="flex items-center gap-1 px-2 py-1.5 bg-dark-bg/95 backdrop-blur-3xl border border-white/10 rounded-[1.25rem] shadow-2xl relative">
+                <div className="absolute inset-0 bg-white/[0.02] pointer-events-none rounded-[1.25rem]" />
+                {character.resources.filter(r => r.max > 0).map(res => (
+                  <div 
+                    key={res.id}
+                    onClick={() => updateResourceCount(res.id, -1)}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      window.dispatchEvent(new CustomEvent('open-character-modal', { detail: { type: 'resource', data: res } }));
+                    }}
+                    className={`relative group cursor-pointer w-10 h-10 bg-dark-card/30 border rounded-xl flex items-center justify-center transition-all ${
+                      res.current === 0 ? 'border-red-500/50 bg-red-500/5' : 'border-white/5 hover:border-blue-500/30 hover:bg-white/5'
+                    }`}
+                  >
+                    {getLucideIcon(res.iconName, { size: 18, className: res.current === 0 ? "text-red-400" : "text-blue-400" })}
+                    <span className={`absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center text-[9px] font-black text-white shadow-lg border border-dark-bg ${
+                      res.current === 0 ? 'bg-red-500' : 'bg-blue-500'
+                    }`}>
+                      {res.current}
+                    </span>
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 px-5 py-3 bg-dark-card border border-dark-border rounded-xl text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-2xl">
+                      <div className="font-bold text-gray-200">{res.name}: {res.current}/{res.max}</div>
+                      <div className="text-gray-400 mt-1.5 text-[11px]">ЛКМ: -1 • ПКМ: просмотр</div>
+                    </div>
+                  </div>
+                ))}
+
+                <div className="w-px h-6 bg-white/10 mx-1" />
+
+                <div 
+                  onClick={() => window.dispatchEvent(new CustomEvent('open-character-modal', { detail: { type: 'currency' } }))}
+                  className="flex items-center gap-2 px-3 py-1.5 hover:bg-white/5 rounded-xl cursor-pointer transition-all border border-transparent hover:border-white/5 group/currency relative"
+                >
+                  <Coins size={16} className="text-yellow-500 group-hover/currency:scale-110 transition-transform" />
+                  <span className="text-xs font-bold text-gray-300">
+                    {Math.floor(character.currency.gold + character.currency.silver/10 + character.currency.copper/100)}
+                  </span>
+                  
+                  {/* Currency Tooltip */}
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 px-5 py-3 bg-dark-card border border-dark-border rounded-xl text-sm whitespace-nowrap opacity-0 group-hover/currency:opacity-100 transition-opacity pointer-events-none z-50 shadow-2xl">
+                    <div className="font-bold text-gray-200">Валюта: {(character.currency.gold + character.currency.silver/10 + character.currency.copper/100).toFixed(2)} ЗМ</div>
+                    <div className="text-gray-400 mt-1.5 text-[11px]">Клик: управление кошельком</div>
+                  </div>
+                </div>
+
+                {character.inventory.filter(i => i.type === 'ammunition').length > 0 && (
+                  <div 
+                    onClick={() => window.dispatchEvent(new CustomEvent('open-character-modal', { detail: { type: 'ammunition' } }))}
+                    className="flex items-center gap-2 px-3 py-1.5 hover:bg-white/5 rounded-xl cursor-pointer transition-all border border-transparent hover:border-white/5 group/ammo relative"
+                  >
+                    <Target size={16} className="text-orange-400 group-hover/ammo:scale-110 transition-transform" />
+                    <span className="text-xs font-bold text-gray-300">
+                      {character.inventory.filter(i => i.type === 'ammunition').reduce((sum, i) => sum + (i.quantity || 0), 0)}
+                    </span>
+
+                    {/* Ammo Tooltip */}
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 px-5 py-3 bg-dark-card border border-dark-border rounded-xl text-sm whitespace-nowrap opacity-0 group-hover/ammo:opacity-100 transition-opacity pointer-events-none z-50 shadow-2xl">
+                      <div className="font-bold text-gray-200">Боеприпасы: {character.inventory.filter(i => i.type === 'ammunition').reduce((sum, i) => sum + (i.quantity || 0), 0)} шт</div>
+                      <div className="text-gray-400 mt-1.5 text-[11px]">Нажми для управления</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Combat Stats (AC, Initiative, Prof) */}
+              <div className="flex items-center gap-6 px-6 py-2 bg-dark-bg/95 backdrop-blur-3xl border border-white/10 rounded-[1.25rem] shadow-2xl relative overflow-hidden">
+                <div className="absolute inset-0 bg-white/[0.02] pointer-events-none" />
+                <div 
+                  className="flex flex-col items-center cursor-pointer group/stat transition-all"
+                  onClick={() => setShowACModal(true)}
+                >
+                  <span className="text-[7px] font-black text-gray-500 uppercase tracking-[0.2em] mb-0.5">DEFENSE</span>
+                  <div className="flex items-center gap-2">
+                    <Shield size={14} className="text-blue-400 group-hover/stat:scale-110 transition-transform" />
+                    <span className="text-sm font-black text-blue-100">{character.armorClass}</span>
+                  </div>
+                </div>
+                
+                <div className="w-px h-8 bg-white/10" />
+
+                <div 
+                  className="flex flex-col items-center cursor-pointer group/stat transition-all"
+                  onClick={startCombat}
+                >
+                  <span className="text-[7px] font-black text-gray-500 uppercase tracking-[0.2em] mb-0.5">INITIATIVE</span>
+                  <div className="flex items-center gap-2">
+                    <Activity size={14} className="text-amber-400 group-hover/stat:scale-110 transition-transform" />
+                    <span className="text-sm font-black text-amber-100">
+                      {initiative !== null 
+                        ? `+${initiative}` 
+                        : `${getModifier('dexterity') >= 0 ? '+' : ''}${getModifier('dexterity')}${character.initiativeBonus ? ` + ${character.initiativeBonus}` : ''}`
+                      }
+                    </span>
+                  </div>
+                </div>
+
+                <div className="w-px h-8 bg-white/10" />
+
+                <div className="flex flex-col items-center group/stat transition-all">
+                  <span className="text-[7px] font-black text-gray-500 uppercase tracking-[0.2em] mb-0.5">PROFICIENCY</span>
+                  <div className="flex items-center gap-2">
+                    <Target size={14} className="text-purple-400 group-hover/stat:scale-110 transition-transform" />
+                    <span className="text-sm font-black text-purple-100">+{character.proficiencyBonus}</span>
+                  </div>
+                </div>
+
+                <div className="w-px h-8 bg-white/10" />
+
+                <div className="flex flex-col items-center group/stat transition-all">
+                  <span className="text-[7px] font-black text-gray-500 uppercase tracking-[0.2em] mb-0.5">SPEED</span>
+                  <div className="flex items-center gap-2">
+                    <Wind size={14} className="text-green-400 group-hover/stat:scale-110 transition-transform" />
+                    <span className="text-sm font-black text-green-100">{character.speed}фт</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-row items-stretch justify-center gap-3 w-full relative group/hotbar">
+              {[
+                { id: 'attacks', label: 'Атаки', icon: Sword, data: actionGroups.attacks, color: '#ef4444' },
+                { id: 'abilities', label: 'Умения', icon: Sparkles, data: actionGroups.abilities, color: '#a855f7' },
+                { id: 'spells', label: 'Магия', icon: Wand2, data: actionGroups.spells, color: '#3b82f6' },
+                { id: 'items', label: 'Вещи', icon: Box, data: actionGroups.items, color: '#94a3b8' },
+              ].map((cat) => (
+                <div 
+                  key={cat.id} 
+                  className="flex flex-col gap-0 flex-1 min-w-0 bg-dark-bg backdrop-blur-3xl border border-white/5 rounded-[2rem] shadow-2xl relative overflow-hidden group/cat-panel transition-all duration-500 hover:border-white/10"
+                >
+                  {/* Subtle color glow in background */}
+                  <div 
+                    className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-24 blur-[40px] opacity-10 pointer-events-none transition-opacity duration-500 group-hover/cat-panel:opacity-20"
+                    style={{ backgroundColor: cat.color }}
+                  />
+                  
+                  <div className="flex items-center justify-between px-5 py-3 relative z-10">
+                    <div className="flex items-center gap-2.5">
+                      <div 
+                        className="p-1.5 rounded-lg transition-transform duration-500 group-hover/cat-panel:scale-110"
+                        style={{ backgroundColor: `${cat.color}15`, color: cat.color }}
                       >
-                        {getLucideIcon(
-                          (action as any).hotbarType === 'spell' ? ((action as any).iconName || 'Wand2') : 
-                          (action as any).hotbarType === 'attack' ? ((action as any).iconName || ((action as any).weaponId ? 'Sword' : 'Zap')) :
-                          (action as any).hotbarType === 'ability' ? ((action as any).iconName || 'Zap') :
-                          ((action as any).type === 'weapon' ? 'Sword' : (action as any).type === 'armor' ? 'Shield' : 'Box'),
-                          { size: 28, style: { color: (action as any).color || '#94a3b8' } }
-                        )}
-                        {(action as any).actionType && (
-                          <div 
-                            className="absolute bottom-1.5 right-1.5 w-2.5 h-2.5 rounded-full border-2 border-dark-bg shadow-sm"
-                            style={{ backgroundColor: (action as any).actionType === 'bonus' ? '#22c55e' : (action as any).actionType === 'reaction' ? '#f97316' : '#3b82f6' }}
-                          />
-                        )}
-                      </motion.div>
-                    ))
-                  )}
-                </AnimatePresence>
-              </div>
-              </div>
+                        <cat.icon size={14} />
+                      </div>
+                      <span 
+                        className="text-[10px] font-black uppercase tracking-[0.25em] transition-colors duration-500"
+                        style={{ color: cat.color }}
+                      >
+                        {cat.label}
+                      </span>
+                    </div>
+                    <div 
+                      className="w-1.5 h-1.5 rounded-full animate-pulse"
+                      style={{ backgroundColor: cat.color, boxShadow: `0 0 10px ${cat.color}` }}
+                    />
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2.5 p-4 min-h-[150px] max-h-[200px] overflow-y-auto custom-scrollbar content-start relative z-10 bg-black/40 rounded-t-[1.5rem] border-t border-white/5 shadow-inner transition-colors duration-500 group-hover/cat-panel:bg-black/50">
+                    <AnimatePresence mode="popLayout">
+                      {cat.data.length > 0 ? (
+                        cat.data.map((action, idx) => (
+                          <motion.div
+                            key={action.id + idx}
+                            layout
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.8 }}
+                            onClick={() => {
+                              const a = action as any;
+                              if (a.hotbarType === 'spell') openSpellView(a);
+                              else if (a.hotbarType === 'attack') openAttackView(a);
+                              else if (a.hotbarType === 'ability') openAbilityView(a);
+                              else if (a.hotbarType === 'item') openItemView(a);
+                            }}
+                            onMouseEnter={(e) => handleItemHover(action, e.currentTarget.getBoundingClientRect())}
+                            onMouseLeave={handleItemUnhover}
+                            className="relative w-12 h-12 bg-dark-card/60 border border-white/5 rounded-2xl flex items-center justify-center cursor-pointer hover:scale-110 hover:bg-dark-card hover:border-white/20 active:scale-95 transition-all shadow-lg"
+                            style={{ 
+                              boxShadow: hoveredItem?.id === action.id ? `0 0 20px ${cat.color}20` : undefined
+                            }}
+                          >
+                            {getLucideIcon(
+                              (action as any).hotbarType === 'spell' ? ((action as any).iconName || 'Wand2') : 
+                              (action as any).hotbarType === 'attack' ? ((action as any).iconName || ((action as any).weaponId ? 'Sword' : 'Zap')) :
+                              (action as any).hotbarType === 'ability' ? ((action as any).iconName || 'Zap') :
+                              ((action as any).type === 'weapon' ? 'Sword' : (action as any).type === 'armor' ? 'Shield' : 'Box'),
+                              { size: 24, style: { color: (action as any).color || cat.color } }
+                            )}
+                            {(action as any).actionType && (
+                              <div 
+                                className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-dark-bg shadow-sm"
+                                style={{ backgroundColor: (action as any).actionType === 'bonus' ? '#22c55e' : (action as any).actionType === 'reaction' ? '#f97316' : '#3b82f6' }}
+                              />
+                            )}
+                          </motion.div>
+                        ))
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center gap-2 opacity-20">
+                          <cat.icon size={32} style={{ color: cat.color }} />
+                          <span className="text-[8px] font-bold uppercase tracking-widest" style={{ color: cat.color }}>Пусто</span>
+                        </div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
+              ))}
             </div>
 
             {/* Functional Experience Bar below */}
