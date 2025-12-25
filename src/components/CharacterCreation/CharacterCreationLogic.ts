@@ -18,6 +18,10 @@ export const useCharacterCreationLogic = (onComplete?: () => void) => {
   const [subrace, setSubrace] = useState(character?.subrace || '');
   const [charClass, setCharClass] = useState(character?.class || '');
   const [subclass, setSubclass] = useState(character?.subclass || '');
+  const [isCustomRace, setIsCustomRace] = useState(false);
+  const [isCustomSubrace, setIsCustomSubrace] = useState(false);
+  const [isCustomClass, setIsCustomClass] = useState(false);
+  const [isCustomSubclass, setIsCustomSubclass] = useState(false);
   const [level] = useState(character?.level || 1);
   const [experience] = useState(character?.experience || 0);
   const [speed, setSpeed] = useState(character?.speed || 30);
@@ -167,7 +171,7 @@ export const useCharacterCreationLogic = (onComplete?: () => void) => {
   };
   
   const selectedSubrace = selectedRace?.subraces?.find((sr: Subrace) => sr.id === subrace);
-  const isBasicValid = name.trim() !== '' && race !== '' && (!selectedRace?.subraces || subrace !== '') && charClass !== '' && subclass !== '';
+  const isBasicValid = name.trim() !== '' && race !== '' && charClass !== '';
   const isAttributesValid = pointsRemaining === 0;
   const isFormValid = isBasicValid && isAttributesValid;
 
@@ -178,6 +182,10 @@ export const useCharacterCreationLogic = (onComplete?: () => void) => {
     subrace, setSubrace,
     charClass, setCharClass,
     subclass, setSubclass,
+    isCustomRace, setIsCustomRace,
+    isCustomSubrace, setIsCustomSubrace,
+    isCustomClass, setIsCustomClass,
+    isCustomSubclass, setIsCustomSubclass,
     speed, setSpeed,
     attributes, setAttributes,
     skills, setSkills,

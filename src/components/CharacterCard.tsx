@@ -118,7 +118,7 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({ character, onClick
             <h3 className="font-bold text-lg text-gray-100 truncate mb-1">{character.name}</h3>
             <div className="text-xs text-gray-400">
               {charClass?.name || character.class}
-              {subclass && ` • ${subclass.name}`}
+              {(subclass?.name || character.subclass) && ` • ${subclass?.name || character.subclass}`}
             </div>
           </div>
         </div>

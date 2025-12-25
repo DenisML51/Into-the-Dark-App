@@ -67,10 +67,12 @@ export const PersonalityTab: React.FC<PersonalityTabProps> = ({
                 
                 <div className="flex flex-wrap gap-3">
                   <div className="px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full text-blue-400 text-[10px] font-black uppercase tracking-widest">
-                    {race?.name}{selectedSubrace && ` (${selectedSubrace.name})`}
+                    {race?.name || character.race}
+                    {(selectedSubrace?.name || character.subrace) && ` (${selectedSubrace?.name || character.subrace})`}
                   </div>
                   <div className="px-3 py-1 bg-purple-500/10 border border-purple-500/20 rounded-full text-purple-400 text-[10px] font-black uppercase tracking-widest">
-                    {charClass?.name}{selectedSubclass && ` • ${selectedSubclass.name}`}
+                    {charClass?.name || character.class}
+                    {(selectedSubclass?.name || character.subclass) && ` • ${selectedSubclass?.name || character.subclass}`}
                   </div>
                   <div className="px-3 py-1 bg-pink-500/10 border border-pink-500/20 rounded-full text-pink-400 text-[10px] font-black uppercase tracking-widest">
                     {character.alignment || 'Без мировоззрения'}

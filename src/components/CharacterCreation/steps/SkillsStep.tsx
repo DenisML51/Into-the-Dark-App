@@ -12,6 +12,9 @@ interface SkillsStepProps {
   languagesAndProficiencies: string;
   setLanguagesAndProficiencies: (val: string) => void;
   name: string;
+  race: string;
+  subrace: string;
+  charClass: string;
   selectedRace: Race | undefined;
   selectedSubrace: Subrace | undefined;
   selectedClass: Class | undefined;
@@ -30,6 +33,9 @@ export const SkillsStep: React.FC<SkillsStepProps> = ({
   languagesAndProficiencies,
   setLanguagesAndProficiencies,
   name,
+  race,
+  subrace,
+  charClass,
   selectedRace,
   selectedSubrace,
   selectedClass,
@@ -142,7 +148,7 @@ export const SkillsStep: React.FC<SkillsStepProps> = ({
         </div>
 
         {/* Character Preview */}
-        {(name || selectedRace || selectedClass) && (
+        {(name || race || charClass) && (
           <div className="bg-gradient-to-br from-dark-card to-dark-bg rounded-2xl p-6 border border-dark-border shadow-lg">
             <h3 className="text-lg font-semibold mb-4">Предпросмотр</h3>
             <div className="space-y-3">
@@ -152,26 +158,26 @@ export const SkillsStep: React.FC<SkillsStepProps> = ({
                   <div className="font-semibold">{name}</div>
                 </div>
               )}
-              {selectedRace && (
+              {race && (
                 <div>
                   <div className="text-xs text-gray-400 mb-1">Раса</div>
-                  <div className="font-semibold">{selectedRace.name}</div>
-                  {selectedSubrace && (
-                    <div className="text-xs text-gray-500 mt-1">({selectedSubrace.name})</div>
+                  <div className="font-semibold">{selectedRace?.name || race}</div>
+                  {(selectedSubrace || subrace) && (
+                    <div className="text-xs text-gray-500 mt-1">({selectedSubrace?.name || subrace})</div>
                   )}
                 </div>
               )}
-              {selectedClass && (
+              {charClass && (
                 <div>
                   <div className="text-xs text-gray-400 mb-1">Класс</div>
-                  <div className="font-semibold">{selectedClass.name}</div>
+                  <div className="font-semibold">{selectedClass?.name || charClass}</div>
                 </div>
               )}
-              {subclass && selectedClass && (
+              {(subclass || (selectedClass && subclass)) && (
                 <div>
                   <div className="text-xs text-gray-400 mb-1">Подкласс</div>
                   <div className="font-semibold">
-                    {selectedClass.subclasses.find(sc => sc.id === subclass)?.name}
+                    {selectedClass?.subclasses.find(sc => sc.id === subclass)?.name || subclass}
                   </div>
                 </div>
               )}
