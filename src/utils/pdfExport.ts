@@ -2,13 +2,31 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Character } from '../types';
 import { RACES, CLASSES, ATTRIBUTES_LIST, SKILLS_LIST, calculateMaxSanity } from '../types';
+import { CONDITIONS } from '../constants/conditions';
 
 const loadFonts = async () => {
-  // jspdf doesn't support unicode by default well without embedding fonts.
-  // For now we'll rely on the canvas rendering which handles it better.
+  const fontId = 'medieval-fonts-link';
+  if (!document.getElementById(fontId)) {
+    const link = document.createElement('link');
+    link.id = fontId;
+    link.href = 'https://fonts.googleapis.com/css2?family=Almendra:ital,wght@0,400;0,700;1,400;1,700&family=MedievalSharp&family=Inter:wght@400;700&display=swap';
+    link.rel = 'stylesheet';
+    document.head.appendChild(link);
+  }
+  
+  try {
+    // Ждем шрифты не более 3 секунд
+    await Promise.race([
+      document.fonts.ready,
+      new Promise(resolve => setTimeout(resolve, 3000))
+    ]);
+  } catch (e) {
+    console.warn('Font loading timeout or error', e);
+  }
 };
 
 export const exportToPDF = async (character: Character) => {
+  await loadFonts();
   // Create a toast to show progress
   const loadingToast = document.createElement('div');
   loadingToast.style.position = 'fixed';
@@ -27,388 +45,367 @@ export const exportToPDF = async (character: Character) => {
 
   // Создаем временный контейнер для рендеринга
   const container = document.createElement('div');
-  container.style.position = 'absolute';
-  container.style.left = '-9999px';
+  container.className = 'pdf-export-container';
+  container.style.position = 'fixed'; // Use fixed instead of absolute
+  container.style.left = '0';
   container.style.top = '0';
-  container.style.width = '850px'; // Closer to A4 ratio
-  container.style.padding = '40px';
-  container.style.backgroundColor = '#ffffff';
-  container.style.color = '#000000';
-  
-  // Font styles are important for html2canvas
-  const fontStyles = document.createElement('style');
-  fontStyles.innerHTML = `
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
-    * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important; }
-  `;
-  document.head.appendChild(fontStyles);
+  container.style.width = '794px'; 
+  container.style.zIndex = '-1'; // Behind everything
+  container.style.opacity = '0.01'; // Almost invisible but still rendered
+  container.style.pointerEvents = 'none';
+  container.style.backgroundColor = '#f4e4bc';
+  container.style.color = '#2c1810';
   
   const race = RACES.find(r => r.id === character.race);
   const charClass = CLASSES.find(c => c.id === character.class);
   const subclass = charClass?.subclasses.find(sc => sc.id === character.subclass);
+
+  // Decorative SVG Ornaments
+  const ornamentTop = `<svg width="100%" height="20" viewBox="0 0 400 20" preserveAspectRatio="none"><path d="M0 10 Q100 0 200 10 Q300 20 400 10" fill="none" stroke="#2c1810" stroke-width="1" opacity="0.5"/></svg>`;
   
+  const sectionTitle = (title: string) => `
+    <div style="display: flex; align-items: center; margin-bottom: 15px;">
+      <div style="height: 1px; flex: 1; background: linear-gradient(to right, transparent, #2c1810, transparent); opacity: 0.3;"></div>
+      <h3 style="font-family: 'MedievalSharp', cursive; font-size: 18px; margin: 0 15px; color: #2c1810; text-transform: uppercase; letter-spacing: 1px;">${title}</h3>
+      <div style="height: 1px; flex: 1; background: linear-gradient(to right, transparent, #2c1810, transparent); opacity: 0.3;"></div>
+    </div>
+  `;
+
   // Формируем HTML контент
   container.innerHTML = `
-    <div style="font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6;">
+    <style>
+      .pdf-page {
+        padding: 40px;
+        box-sizing: border-box;
+        position: relative;
+        background-color: #f4e4bc !important;
+        /* Убираем внешнюю текстуру, которая может блокировать экспорт по CORS */
+        background-image: radial-gradient(#d4c4a1 1px, transparent 1px);
+        background-size: 20px 20px;
+        min-height: 1120px; 
+        height: auto;
+        overflow: visible;
+      }
+      .section-block {
+        margin-bottom: 20px;
+        padding: 15px;
+        border: 1px solid rgba(44, 24, 16, 0.15);
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        position: relative;
+      }
+      .section-block::before {
+        content: '❦';
+        position: absolute;
+        top: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #f4e4bc;
+        padding: 0 10px;
+        font-size: 12px;
+        color: #2c1810;
+        opacity: 0.6;
+      }
+      .stat-box {
+        background: rgba(44, 24, 16, 0.05);
+        border: 1px solid rgba(44, 24, 16, 0.2);
+        padding: 10px;
+        text-align: center;
+        border-radius: 4px;
+      }
+      .stat-label {
+        font-size: 10px;
+        text-transform: uppercase;
+        color: #5c3d2e;
+        margin-bottom: 4px;
+        font-weight: 700;
+      }
+      .stat-value {
+        font-family: 'MedievalSharp', cursive;
+        font-size: 20px;
+        color: #2c1810;
+      }
+      .spell-card, .attack-card, .ability-card {
+        border-bottom: 1px dashed rgba(44, 24, 16, 0.2);
+        padding: 10px 0;
+      }
+      .spell-card:last-child, .attack-card:last-child, .ability-card:last-child {
+        border-bottom: none;
+      }
+    </style>
+
+    <div class="pdf-page">
       <!-- Header -->
-      <div style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); padding: 20px; margin: -40px -40px 30px -40px; text-align: center; border-radius: 0;">
-        <h1 style="margin: 0 0 5px 0; font-size: 32px; color: #ffffff; font-weight: 700; letter-spacing: 2px;">INTO THE DARK</h1>
-        <div style="font-size: 14px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px;">Лист персонажа</div>
-      </div>
-      
-      <!-- Character Name -->
-      <div style="margin-bottom: 25px; text-align: center;">
-        <h2 style="font-size: 28px; margin: 0 0 5px 0; color: #1e293b; font-weight: 700;">${character.name || 'Без имени'}</h2>
-        <div style="font-size: 14px; color: #64748b;">
-          ${race?.name || character.race} • ${charClass?.name || character.class}${subclass ? ` (${subclass.name})` : ''} • Уровень ${character.level || 1}
+      <div style="text-align: center; margin-bottom: 30px; border-bottom: 2px double #2c1810; padding-bottom: 20px;">
+        <div style="font-family: 'MedievalSharp', cursive; font-size: 14px; opacity: 0.6; margin-bottom: 5px;">INTO THE DARK</div>
+        <h1 style="font-family: 'MedievalSharp', cursive; font-size: 38px; margin: 0; letter-spacing: 4px; color: #2c1810;">ЛИСТ ПЕРСОНАЖА</h1>
+        <div style="margin-top: 15px; font-size: 16px;">
+          ${character.name ? `<span style="font-family: 'MedievalSharp', cursive; font-size: 28px;">${character.name}</span><br>` : ''}
+          <span style="opacity: 0.8;">
+            ${race?.name || character.race} • ${charClass?.name || character.class}${subclass ? ` (${subclass.name})` : ''} • Уровень ${character.level || 1}
+          </span>
         </div>
       </div>
 
-      <!-- Stats Grid -->
-      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 25px;">
-        <div style="background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 8px; padding: 12px; text-align: center;">
-          <div style="font-size: 11px; color: #64748b; text-transform: uppercase; margin-bottom: 4px; font-weight: 600;">Опыт</div>
-          <div style="font-size: 18px; color: #1e293b; font-weight: 700;">${character.experience || 0}</div>
-        </div>
-        <div style="background: #fef2f2; border: 2px solid #fecaca; border-radius: 8px; padding: 12px; text-align: center;">
-          <div style="font-size: 11px; color: #991b1b; text-transform: uppercase; margin-bottom: 4px; font-weight: 600;">Здоровье</div>
-          <div style="font-size: 18px; color: #991b1b; font-weight: 700;">${character.currentHP || 0}${character.tempHP > 0 ? `+${character.tempHP}` : ''} / ${(character.maxHP || 0) + (character.maxHPBonus || 0)}</div>
-        </div>
-        <div style="background: #eff6ff; border: 2px solid #bfdbfe; border-radius: 8px; padding: 12px; text-align: center;">
-          <div style="font-size: 11px; color: #1e40af; text-transform: uppercase; margin-bottom: 4px; font-weight: 600;">Рассудок</div>
-          <div style="font-size: 18px; color: #1e40af; font-weight: 700;">${character.sanity || 0} / ${calculateMaxSanity(character.class, character.attributes.wisdom || 10, character.level || 1)}</div>
-        </div>
-        <div style="background: #f0fdf4; border: 2px solid #bbf7d0; border-radius: 8px; padding: 12px; text-align: center;">
-          <div style="font-size: 11px; color: #166534; text-transform: uppercase; margin-bottom: 4px; font-weight: 600;">КБ</div>
-          <div style="font-size: 18px; color: #166534; font-weight: 700;">${character.armorClass || 10}</div>
-        </div>
-      </div>
-
-      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 25px;">
-        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; text-align: center;">
-          <div style="font-size: 10px; color: #64748b; text-transform: uppercase; margin-bottom: 2px;">Скорость</div>
-          <div style="font-size: 16px; color: #1e293b; font-weight: 600;">${character.speed || 30} фт</div>
-        </div>
-        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; text-align: center;">
-          <div style="font-size: 10px; color: #64748b; text-transform: uppercase; margin-bottom: 2px;">Бонус владения</div>
-          <div style="font-size: 16px; color: #1e293b; font-weight: 600;">+${character.proficiencyBonus || 2}</div>
-        </div>
-        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; text-align: center;">
-          <div style="font-size: 10px; color: #64748b; text-transform: uppercase; margin-bottom: 2px;">Инициатива</div>
-          <div style="font-size: 16px; color: #1e293b; font-weight: 600;">${Math.floor(((character.attributes.dexterity || 10) - 10) / 2) >= 0 ? '+' : ''}${Math.floor(((character.attributes.dexterity || 10) - 10) / 2)}</div>
-        </div>
-      </div>
-
-      ${character.limbs && character.limbs.length > 0 ? `
-      <div style="margin-bottom: 25px;">
-        <h3 style="font-size: 16px; margin: 0 0 12px 0; padding-bottom: 8px; border-bottom: 3px solid #1e293b; color: #1e293b; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">⚔️ Здоровье конечностей</h3>
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
-          ${character.limbs.map(limb => {
-            const healthPercent = (limb.currentHP / limb.maxHP) * 100;
-            const bgColor = healthPercent > 50 ? '#dcfce7' : healthPercent > 0 ? '#fef3c7' : '#fee2e2';
-            const textColor = healthPercent > 50 ? '#166534' : healthPercent > 0 ? '#92400e' : '#991b1b';
-            return `
-            <div style="padding: 10px; background: ${bgColor}; border: 2px solid ${textColor}33; border-radius: 8px;">
-              <div style="font-weight: 700; color: ${textColor}; margin-bottom: 4px; font-size: 13px;">${limb.name}</div>
-              <div style="font-size: 12px; color: ${textColor};">HP: ${limb.currentHP} / ${limb.maxHP}</div>
-              <div style="font-size: 11px; color: ${textColor}; opacity: 0.8;">КБ: ${limb.ac}</div>
-            </div>
-          `;
-          }).join('')}
-        </div>
-      </div>
-      ` : ''}
-      
-      <div style="margin-bottom: 25px;">
-        <h3 style="font-size: 16px; margin: 0 0 12px 0; padding-bottom: 8px; border-bottom: 3px solid #1e293b; color: #1e293b; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">📊 Характеристики</h3>
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
-          ${ATTRIBUTES_LIST.map(attr => {
-            const value = character.attributes[attr.id] || 10;
-            const bonus = character.attributeBonuses?.[attr.id] || 0;
-            const modifier = Math.floor((value - 10) / 2) + bonus;
-            const modifierStr = modifier >= 0 ? `+${modifier}` : `${modifier}`;
-            return `
-              <div style="padding: 14px; border: 2px solid #e2e8f0; border-radius: 10px; text-align: center; background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);">
-                <div style="font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 6px;">${attr.name}</div>
-                <div style="font-size: 28px; font-weight: 700; margin: 6px 0; color: #1e293b;">${value}</div>
-                <div style="font-size: 16px; color: #3b82f6; font-weight: 600; background: #eff6ff; padding: 4px 12px; border-radius: 6px; display: inline-block;">${modifierStr}</div>
-                ${bonus !== 0 ? `<div style="font-size: 9px; color: #64748b; margin-top: 4px;">Бонус: ${bonus >= 0 ? '+' : ''}${bonus}</div>` : ''}
-              </div>
-            `;
-          }).join('')}
-        </div>
-      </div>
-      
-      <div style="margin-bottom: 25px;">
-        <h3 style="font-size: 16px; margin: 0 0 12px 0; padding-bottom: 8px; border-bottom: 3px solid #1e293b; color: #1e293b; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">🎯 Навыки</h3>
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px;">
-          ${(character.skills && Array.isArray(character.skills) ? character.skills : []).map(skill => {
-            const skillInfo = SKILLS_LIST.find(s => s.id === skill.id);
-            if (!skillInfo) return '';
-            
-            const attrValue = character.attributes[skill.attribute] || 10;
-            const baseModifier = Math.floor((attrValue - 10) / 2);
-            const profBonus = skill.proficient ? (character.proficiencyBonus || 2) : 0;
-            const expertiseBonus = skill.expertise ? (character.proficiencyBonus || 2) : 0;
-            const total = baseModifier + profBonus + expertiseBonus;
-            const modStr = total >= 0 ? `+${total}` : `${total}`;
-            
-            const marker = skill.expertise ? '◆◆' : skill.proficient ? '◆' : '○';
-            const bgColor = skill.expertise ? '#dbeafe' : skill.proficient ? '#f0fdf4' : '#f8fafc';
-            const borderColor = skill.expertise ? '#3b82f6' : skill.proficient ? '#10b981' : '#e2e8f0';
-            const textColor = skill.expertise ? '#1e40af' : skill.proficient ? '#166534' : '#64748b';
-            
-            return `
-              <div style="padding: 8px 12px; background: ${bgColor}; border-left: 3px solid ${borderColor}; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 12px; color: ${textColor}; font-weight: ${skill.proficient ? '600' : '400'};">
-                  ${marker} ${skillInfo.name}
-                </span>
-                <span style="font-size: 14px; font-weight: 700; color: ${textColor};">${modStr}</span>
-              </div>
-            `;
-          }).join('')}
-        </div>
-      </div>
-
-      ${character.resources && character.resources.length > 0 ? `
-      <div style="margin-bottom: 25px;">
-        <h3 style="font-size: 16px; margin: 0 0 12px 0; padding-bottom: 8px; border-bottom: 3px solid #1e293b; color: #1e293b; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">⚡ Ресурсы</h3>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-          ${character.resources.map(resource => `
-            <div style="padding: 12px; background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 8px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <strong style="font-size: 13px; color: #1e293b;">${resource.name}</strong>
-                <span style="font-size: 14px; font-weight: 700; color: #3b82f6;">${resource.current} / ${resource.max}</span>
-              </div>
-              ${resource.description ? `
-              <div style="font-size: 11px; color: #64748b; line-height: 1.4; padding: 8px; background: #ffffff; border-radius: 4px; margin-top: 6px;">
-                ${resource.description}
-              </div>
-              ` : ''}
-            </div>
-          `).join('')}
-        </div>
-      </div>
-      ` : ''}
-
-      ${character.attacks && character.attacks.length > 0 ? `
-      <div style="margin-bottom: 25px;">
-        <h3 style="font-size: 16px; margin: 0 0 12px 0; padding-bottom: 8px; border-bottom: 3px solid #1e293b; color: #1e293b; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">⚔️ Атаки</h3>
-        ${character.attacks.map(attack => {
-          const actionType = attack.actionType === 'action' ? 'Основное' : 
-                           attack.actionType === 'bonus' ? 'Бонусное' : 'Реакция';
-          const actionColor = attack.actionType === 'action' ? '#dc2626' : 
-                             attack.actionType === 'bonus' ? '#2563eb' : '#7c3aed';
-          return `
-          <div style="padding: 12px; margin-bottom: 10px; background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 8px; position: relative;">
-            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
-              <div>
-                <strong style="font-size: 14px; color: #1e293b;">${attack.name}</strong>
-                ${attack.weaponId ? `<span style="font-size: 10px; color: #64748b; margin-left: 8px;">(От оружия)</span>` : ''}
-              </div>
-              <span style="font-size: 11px; padding: 3px 8px; background: ${actionColor}; color: white; border-radius: 4px; font-weight: 600;">${actionType}</span>
-            </div>
-            <div style="display: grid; grid-template-columns: auto auto auto; gap: 12px; font-size: 12px; color: #1e293b;">
-              <div>
-                <span style="color: #64748b;">Бонус:</span> <strong style="color: #3b82f6;">${attack.hitBonus >= 0 ? '+' : ''}${attack.hitBonus}</strong>
-              </div>
-              <div>
-                <span style="color: #64748b;">Урон:</span> <strong>${attack.damage}</strong>
-              </div>
-              <div>
-                <span style="color: #64748b;">Тип:</span> <strong>${attack.damageType}</strong>
-              </div>
-              ${attack.usesAmmunition ? `<div><span style="color: #64748b;">Боеприпасы:</span> <strong>${attack.ammunitionCost}</strong></div>` : ''}
-            </div>
-            ${attack.description ? `
-            <div style="margin-top: 8px; padding: 8px; background: #ffffff; border-radius: 4px; font-size: 11px; color: #64748b; line-height: 1.4;">
-              ${attack.description}
-            </div>
-            ` : ''}
+      <div style="display: flex; gap: 20px;">
+        <!-- Avatar if exists -->
+        ${character.avatar ? `
+          <div style="flex: 0 0 150px;">
+            <img src="${character.avatar}" style="width: 150px; height: 150px; object-fit: cover; border: 3px solid #2c1810; padding: 3px; background: white; border-radius: 4px;" />
           </div>
-        `;
-        }).join('')}
-      </div>
-      ` : ''}
-
-      ${character.abilities && character.abilities.length > 0 ? `
-      <div style="margin-bottom: 25px;">
-        <h3 style="font-size: 16px; margin: 0 0 12px 0; padding-bottom: 8px; border-bottom: 3px solid #1e293b; color: #1e293b; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">✨ Способности</h3>
-        ${character.abilities.map(ability => {
-          const actionType = ability.actionType === 'action' ? 'Основное' : 
-                           ability.actionType === 'bonus' ? 'Бонусное' : 'Реакция';
-          const actionColor = ability.actionType === 'action' ? '#dc2626' : 
-                             ability.actionType === 'bonus' ? '#2563eb' : '#7c3aed';
-          const resource = ability.resourceId ? character.resources.find(r => r.id === ability.resourceId) : null;
-          return `
-          <div style="padding: 12px; margin-bottom: 10px; background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 8px;">
-            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
-              <strong style="font-size: 14px; color: #1e293b;">${ability.name}</strong>
-              <span style="font-size: 11px; padding: 3px 8px; background: ${actionColor}; color: white; border-radius: 4px; font-weight: 600;">${actionType}</span>
-            </div>
-            ${resource ? `
-            <div style="font-size: 12px; color: #64748b; margin-bottom: 6px;">
-              Тратит: <strong style="color: #3b82f6;">${ability.resourceCost} ${resource.name}</strong>
-            </div>
-            ` : ''}
-            ${ability.description ? `
-            <div style="margin-bottom: 8px; padding: 8px; background: #ffffff; border-radius: 4px; font-size: 11px; color: #64748b; line-height: 1.4;">
-              ${ability.description}
-            </div>
-            ` : ''}
-            <div style="padding: 10px; background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px; font-size: 11px; color: #1e40af; line-height: 1.4;">
-              <strong style="display: block; margin-bottom: 4px; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">Эффект:</strong>
-              ${ability.effect}
-            </div>
-          </div>
-        `;
-        }).join('')}
-      </div>
-      ` : ''}
-
-      ${character.inventory && character.inventory.length > 0 ? `
-      <div style="margin-bottom: 25px;">
-        <h3 style="font-size: 16px; margin: 0 0 12px 0; padding-bottom: 8px; border-bottom: 3px solid #1e293b; color: #1e293b; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">🎒 Инвентарь</h3>
-        ${character.inventory.map(item => {
-          const typeLabel = item.type === 'armor' ? '🛡️ Броня' : 
-                           item.type === 'weapon' ? '⚔️ Оружие' : 
-                           item.type === 'ammunition' ? '🎯 Боеприпас' : '📦 Предмет';
-          return `
-          <div style="padding: 12px; margin-bottom: 10px; background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 8px;">
-            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 6px;">
-              <div>
-                <strong style="font-size: 14px; color: #1e293b;">${item.name}</strong>
-                <span style="font-size: 11px; color: #64748b; margin-left: 8px;">${typeLabel}</span>
-                ${item.quantity && item.quantity > 1 ? `<span style="font-size: 11px; color: #3b82f6; margin-left: 8px; font-weight: 600;">x${item.quantity}</span>` : ''}
-              </div>
-              ${item.equipped ? `<span style="font-size: 10px; padding: 3px 8px; background: #10b981; color: white; border-radius: 4px; font-weight: 600;">ЭКИП.</span>` : ''}
-            </div>
-            ${item.description ? `
-            <div style="font-size: 11px; color: #64748b; margin-bottom: 8px; line-height: 1.4;">
-              ${item.description}
-            </div>
-            ` : ''}
-            <div style="font-size: 11px; color: #1e293b;">
-              ${item.type === 'armor' && item.baseAC ? `
-                <div style="margin-bottom: 4px; padding: 6px; background: #f0fdf4; border-radius: 4px;">
-                  <strong>КБ:</strong> ${item.baseAC}${item.dexModifier ? ' + Ловкость' : ''}${item.maxDexModifier !== null && item.maxDexModifier !== undefined ? ` (макс +${item.maxDexModifier})` : ''}
-                </div>
-              ` : ''}
-              ${item.type === 'weapon' ? `
-                <div style="margin-bottom: 4px; padding: 6px; background: #fef2f2; border-radius: 4px;">
-                  <strong>Урон:</strong> ${item.damage} (${item.damageType}) • <strong>Тип:</strong> ${item.weaponClass === 'melee' ? 'Мили' : 'Огнестрел'}
-                </div>
-              ` : ''}
-              ${item.itemClass ? `<div style="margin-bottom: 4px;"><strong>Класс:</strong> ${item.itemClass}</div>` : ''}
-              <div style="color: #64748b; margin-top: 6px;">
-                Вес: ${item.weight} • Стоимость: ${item.cost}
-              </div>
-            </div>
-          </div>
-        `;
-        }).join('')}
-        ${character.inventoryNotes ? `
-        <div style="margin-top: 12px; padding: 12px; background: #fffbeb; border-left: 3px solid #f59e0b; border-radius: 4px;">
-          <div style="font-size: 11px; font-weight: 600; color: #92400e; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">Заметки:</div>
-          <div style="white-space: pre-wrap; font-size: 11px; color: #78350f; line-height: 1.5;">
-            ${character.inventoryNotes}
-          </div>
-        </div>
         ` : ''}
-      </div>
-      ` : ''}
-      
-      ${(character.appearance || character.backstory || character.alignment || character.personalityTraits || character.ideals || character.bonds || character.flaws || character.alliesAndOrganizations || character.languagesAndProficiencies) ? `
-      <div style="margin-bottom: 25px;">
-        <h3 style="font-size: 16px; margin: 0 0 12px 0; padding-bottom: 8px; border-bottom: 3px solid #1e293b; color: #1e293b; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">👤 Личность</h3>
         
-        ${character.alignment ? `
-        <div style="margin-bottom: 12px; padding: 10px; background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 8px; text-align: center;">
-          <div style="font-size: 11px; color: #64748b; text-transform: uppercase; margin-bottom: 4px; font-weight: 600;">Мировоззрение</div>
-          <div style="font-size: 14px; color: #1e293b; font-weight: 700;">${character.alignment}</div>
-        </div>
-        ` : ''}
-
-        ${character.appearance ? `
-        <div style="margin-bottom: 12px; padding: 12px; background: #f8fafc; border-left: 3px solid #64748b; border-radius: 4px;">
-          <div style="font-size: 11px; font-weight: 600; color: #1e293b; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">Внешность</div>
-          <div style="white-space: pre-wrap; font-size: 11px; color: #475569; line-height: 1.5;">
-            ${character.appearance}
-          </div>
-        </div>
-        ` : ''}
-
-        ${character.backstory ? `
-        <div style="margin-bottom: 12px; padding: 12px; background: #f8fafc; border-left: 3px solid #64748b; border-radius: 4px;">
-          <div style="font-size: 11px; font-weight: 600; color: #1e293b; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">Предыстория</div>
-          <div style="white-space: pre-wrap; font-size: 11px; color: #475569; line-height: 1.5;">
-            ${character.backstory}
-          </div>
-        </div>
-        ` : ''}
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-          ${character.personalityTraits ? `
-          <div style="padding: 12px; background: #fef3c7; border-left: 3px solid #f59e0b; border-radius: 4px;">
-            <div style="font-size: 10px; font-weight: 600; color: #92400e; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">Черты характера</div>
-            <div style="white-space: pre-wrap; font-size: 10px; color: #78350f; line-height: 1.4;">
-              ${character.personalityTraits}
+        <div style="flex: 1;">
+          <!-- Primary Stats -->
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px;">
+            <div class="stat-box">
+              <div class="stat-label">Здоровье</div>
+              <div class="stat-value" style="color: #8b0000;">${character.currentHP || 0}${character.tempHP > 0 ? `+${character.tempHP}` : ''} / ${(character.maxHP || 0) + (character.maxHPBonus || 0)}</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Рассудок</div>
+              <div class="stat-value" style="color: #00008b;">${character.sanity || 0} / ${calculateMaxSanity(character.class, character.attributes.wisdom || 10, character.level || 1)}</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">КБ</div>
+              <div class="stat-value">${character.armorClass || 10}</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Опыт</div>
+              <div class="stat-value">${character.experience || 0}</div>
             </div>
           </div>
-          ` : ''}
 
-          ${character.ideals ? `
-          <div style="padding: 12px; background: #dbeafe; border-left: 3px solid #3b82f6; border-radius: 4px;">
-            <div style="font-size: 10px; font-weight: 600; color: #1e40af; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">Идеалы</div>
-            <div style="white-space: pre-wrap; font-size: 10px; color: #1e3a8a; line-height: 1.4;">
-              ${character.ideals}
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+            <div class="stat-box">
+              <div class="stat-label">Инициатива</div>
+              <div class="stat-value">${Math.floor(((character.attributes.dexterity || 10) - 10) / 2) >= 0 ? '+' : ''}${Math.floor(((character.attributes.dexterity || 10) - 10) / 2)}</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Скорость</div>
+              <div class="stat-value">${character.speed || 30} фт</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Бонус влад.</div>
+              <div class="stat-value">+${character.proficiencyBonus || 2}</div>
             </div>
           </div>
-          ` : ''}
-
-          ${character.bonds ? `
-          <div style="padding: 12px; background: #dcfce7; border-left: 3px solid #10b981; border-radius: 4px;">
-            <div style="font-size: 10px; font-weight: 600; color: #166534; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">Привязанности</div>
-            <div style="white-space: pre-wrap; font-size: 10px; color: #14532d; line-height: 1.4;">
-              ${character.bonds}
-            </div>
-          </div>
-          ` : ''}
-
-          ${character.flaws ? `
-          <div style="padding: 12px; background: #fee2e2; border-left: 3px solid #dc2626; border-radius: 4px;">
-            <div style="font-size: 10px; font-weight: 600; color: #991b1b; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">Слабости</div>
-            <div style="white-space: pre-wrap; font-size: 10px; color: #7f1d1d; line-height: 1.4;">
-              ${character.flaws}
-            </div>
-          </div>
-          ` : ''}
         </div>
-
-        ${character.alliesAndOrganizations ? `
-        <div style="margin-top: 12px; padding: 12px; background: #f8fafc; border-left: 3px solid #64748b; border-radius: 4px;">
-          <div style="font-size: 11px; font-weight: 600; color: #1e293b; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">Союзники и организации</div>
-          <div style="white-space: pre-wrap; font-size: 11px; color: #475569; line-height: 1.5;">
-            ${character.alliesAndOrganizations}
-          </div>
-        </div>
-        ` : ''}
-
-        ${character.languagesAndProficiencies ? `
-        <div style="margin-top: 12px; padding: 12px; background: #f8fafc; border-left: 3px solid #64748b; border-radius: 4px;">
-          <div style="font-size: 11px; font-weight: 600; color: #1e293b; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">Владения и языки</div>
-          <div style="white-space: pre-wrap; font-size: 11px; color: #475569; line-height: 1.5;">
-            ${character.languagesAndProficiencies}
-          </div>
-        </div>
-        ` : ''}
       </div>
-      ` : ''}
 
-      <div style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #ccc;">
-        <p style="text-align: center; font-size: 10px; color: #999;">
-          Создано через Into The Dark Character Manager
-        </p>
+      <div style="margin-top: 30px; display: grid; grid-template-columns: 220px 1fr; gap: 25px;">
+        <!-- Left Column: Attributes & Skills -->
+        <div>
+          ${sectionTitle('Характеристики')}
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            ${ATTRIBUTES_LIST.map(attr => {
+              const value = character.attributes[attr.id] || 10;
+              const bonus = character.attributeBonuses?.[attr.id] || 0;
+              const modifier = Math.floor((value - 10) / 2) + bonus;
+              const modifierStr = modifier >= 0 ? `+${modifier}` : `${modifier}`;
+              return `
+                <div style="display: flex; align-items: center; background: rgba(44, 24, 16, 0.05); padding: 5px 10px; border-radius: 4px; border: 1px solid rgba(44, 24, 16, 0.1);">
+                  <div style="flex: 1;">
+                    <div style="font-size: 10px; font-weight: 700; text-transform: uppercase;">${attr.name}</div>
+                    <div style="font-size: 16px; font-weight: 700;">${value}</div>
+                  </div>
+                  <div style="font-family: 'MedievalSharp', cursive; font-size: 22px; color: #2c1810;">${modifierStr}</div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+
+          <div style="margin-top: 25px;">
+            ${sectionTitle('Навыки')}
+            <div style="font-size: 12px; display: flex; flex-direction: column; gap: 3px;">
+              ${SKILLS_LIST.map(skillInfo => {
+                const skill = (character.skills || []).find(s => s.id === skillInfo.id);
+                const attrValue = character.attributes[skillInfo.attribute] || 10;
+                const baseModifier = Math.floor((attrValue - 10) / 2);
+                const profBonus = skill?.proficient ? (character.proficiencyBonus || 2) : 0;
+                const expertiseBonus = skill?.expertise ? (character.proficiencyBonus || 2) : 0;
+                const total = baseModifier + profBonus + expertiseBonus;
+                const modStr = total >= 0 ? `+${total}` : `${total}`;
+                
+                return `
+                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 2px 0; border-bottom: 1px solid rgba(44, 24, 16, 0.05);">
+                    <span>${skill?.proficient ? '●' : '○'} ${skillInfo.name} <small style="opacity: 0.6;">(${ATTRIBUTES_LIST.find(a => a.id === skillInfo.attribute)?.shortName})</small></span>
+                    <span style="font-weight: 700;">${modStr}</span>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+
+          <div style="margin-top: 25px;">
+            ${sectionTitle('Валюта')}
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; text-align: center;">
+              <div style="background: rgba(184, 115, 51, 0.1); padding: 5px; border-radius: 4px;">
+                <div style="font-size: 9px; font-weight: 700;">МЕДЬ</div>
+                <div style="font-weight: 700;">${character.currency?.copper || 0}</div>
+              </div>
+              <div style="background: rgba(192, 192, 192, 0.1); padding: 5px; border-radius: 4px;">
+                <div style="font-size: 9px; font-weight: 700;">СЕРЕБРО</div>
+                <div style="font-weight: 700;">${character.currency?.silver || 0}</div>
+              </div>
+              <div style="background: rgba(212, 175, 55, 0.1); padding: 5px; border-radius: 4px;">
+                <div style="font-size: 9px; font-weight: 700;">ЗОЛОТО</div>
+                <div style="font-weight: 700;">${character.currency?.gold || 0}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Attacks, Abilities, Spells -->
+        <div>
+          <div class="section-block">
+            ${sectionTitle('Атаки')}
+            ${(character.attacks || []).map(attack => `
+              <div class="attack-card">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                  <strong style="font-size: 14px;">${attack.name}</strong>
+                  <span style="font-size: 11px; font-style: italic; opacity: 0.7;">${attack.actionType}</span>
+                </div>
+                <div style="display: flex; gap: 15px; font-size: 12px;">
+                  <span>Попадание: <strong>${attack.hitBonus >= 0 ? '+' : ''}${attack.hitBonus}</strong></span>
+                  <span>Урон: <strong>${attack.damage}</strong> (${attack.damageType})</span>
+                </div>
+                ${attack.description ? `<div style="font-size: 11px; margin-top: 5px; opacity: 0.8; line-height: 1.3;">${attack.description}</div>` : ''}
+              </div>
+            `).join('')}
+            ${(!character.attacks || character.attacks.length === 0) ? '<div style="font-style: italic; opacity: 0.5; font-size: 12px;">Нет атак</div>' : ''}
+          </div>
+
+          <div class="section-block">
+            ${sectionTitle('Способности и Черты')}
+            ${(character.traits || []).map(trait => `
+              <div class="ability-card">
+                <strong style="font-size: 14px;">${trait.name}</strong>
+                <div style="font-size: 11px; margin-top: 3px; opacity: 0.8; line-height: 1.3;">${trait.description}</div>
+              </div>
+            `).join('')}
+            ${(character.abilities || []).map(ability => `
+              <div class="ability-card">
+                <div style="display: flex; justify-content: space-between;">
+                  <strong style="font-size: 14px;">${ability.name}</strong>
+                  <span style="font-size: 11px; font-style: italic; opacity: 0.7;">${ability.actionType}</span>
+                </div>
+                <div style="font-size: 11px; margin-top: 3px; opacity: 0.8; line-height: 1.3;">${ability.effect}</div>
+              </div>
+            `).join('')}
+            ${character.abilitiesNotes ? `
+              <div style="margin-top: 10px; padding-top: 5px; border-top: 1px dotted rgba(44, 24, 16, 0.2); font-size: 10px; opacity: 0.7;">
+                ${character.abilitiesNotes}
+              </div>
+            ` : ''}
+          </div>
+
+          ${character.limbs && character.limbs.length > 0 ? `
+            <div class="section-block">
+              ${sectionTitle('Здоровье конечностей')}
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                ${character.limbs.map(limb => `
+                  <div style="font-size: 11px; display: flex; justify-content: space-between; border-bottom: 1px solid rgba(44, 24, 16, 0.05);">
+                    <span>${limb.name} (КБ ${limb.ac})</span>
+                    <strong style="color: ${limb.currentHP <= 0 ? '#8b0000' : 'inherit'}">${limb.currentHP} / ${limb.maxHP}</strong>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    </div>
+
+    <div class="pdf-page">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+        <div>
+          ${character.spells && character.spells.length > 0 ? `
+            <div class="section-block">
+              ${sectionTitle('Заклинания')}
+              <div style="display: flex; flex-direction: column; gap: 15px;">
+                ${character.spells.map(spell => `
+                  <div class="spell-card">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 2px;">
+                      <strong style="font-size: 13px;">${spell.name}</strong>
+                      <span style="font-size: 8px; font-weight: 700;">${spell.level === 0 ? 'ЗАГОВОР' : `${spell.level} КРУГ`}</span>
+                    </div>
+                    <div style="font-size: 9px; opacity: 0.7; margin-bottom: 3px;">${spell.school} • ${spell.castingTime} • ${spell.range}</div>
+                    <div style="font-size: 10px; line-height: 1.2;">${spell.effect || spell.description}</div>
+                  </div>
+                `).join('')}
+              </div>
+              ${character.spellsNotes ? `
+                <div style="margin-top: 15px; font-size: 10px; opacity: 0.7; font-style: italic;">
+                  ${character.spellsNotes}
+                </div>
+              ` : ''}
+            </div>
+          ` : ''}
+        </div>
+
+        <div>
+          <div class="section-block">
+            ${sectionTitle('Инвентарь')}
+            <div style="font-size: 11px;">
+              ${(character.inventory || []).map(item => `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 3px; border-bottom: 1px solid rgba(44, 24, 16, 0.03);">
+                  <span>${item.name}${item.quantity && item.quantity > 1 ? ` x${item.quantity}` : ''}</span>
+                  <span style="opacity: 0.6;">${item.weight} фт.</span>
+                </div>
+              `).join('')}
+            </div>
+            ${character.inventoryNotes ? `
+              <div style="margin-top: 10px; font-size: 10px; opacity: 0.7; background: rgba(44, 24, 16, 0.03); padding: 5px;">
+                ${character.inventoryNotes}
+              </div>
+            ` : ''}
+          </div>
+
+          <div class="section-block">
+            ${sectionTitle('Личность и История')}
+            ${character.backstory ? `
+              <div style="margin-bottom: 15px;">
+                <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; margin-bottom: 3px;">Предыстория</div>
+                <div style="font-size: 10px; line-height: 1.3;">${character.backstory}</div>
+              </div>
+            ` : ''}
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              ${character.personalityTraits ? `<div><div style="font-size: 9px; font-weight: 700;">ЧЕРТЫ</div><div style="font-size: 10px;">${character.personalityTraits}</div></div>` : ''}
+              ${character.ideals ? `<div><div style="font-size: 9px; font-weight: 700;">ИДЕАЛЫ</div><div style="font-size: 10px;">${character.ideals}</div></div>` : ''}
+              ${character.bonds ? `<div><div style="font-size: 9px; font-weight: 700;">ПРИВЯЗАННОСТИ</div><div style="font-size: 10px;">${character.bonds}</div></div>` : ''}
+              ${character.flaws ? `<div><div style="font-size: 9px; font-weight: 700;">СЛАБОСТИ</div><div style="font-size: 10px;">${character.flaws}</div></div>` : ''}
+            </div>
+            ${character.appearance ? `
+              <div style="margin-top: 10px; border-top: 1px solid rgba(44, 24, 16, 0.1); padding-top: 5px;">
+                <div style="font-size: 9px; font-weight: 700;">ВНЕШНОСТЬ</div>
+                <div style="font-size: 10px;">${character.appearance}</div>
+              </div>
+            ` : ''}
+          </div>
+
+          ${(character.resistances && character.resistances.length > 0) || (character.conditions && character.conditions.length > 0) ? `
+            <div class="section-block">
+              ${sectionTitle('Состояния и Сопротивления')}
+              ${character.resistances && character.resistances.length > 0 ? `
+                <div style="margin-bottom: 10px;">
+                  <div style="font-size: 9px; font-weight: 700;">СОПРОТИВЛЕНИЯ</div>
+                  <div style="font-size: 10px;">${character.resistances.map(r => `${r.type} (${r.level})`).join(', ')}</div>
+                </div>
+              ` : ''}
+              ${character.conditions && character.conditions.length > 0 ? `
+                <div>
+                  <div style="font-size: 9px; font-weight: 700;">СОСТОЯНИЯ</div>
+                  <div style="font-size: 10px;">${character.conditions.map(id => CONDITIONS.find(c => c.id === id)?.name || id).join(', ')}</div>
+                </div>
+              ` : ''}
+            </div>
+          ` : ''}
+        </div>
+      </div>
+      
+      <div style="position: absolute; bottom: 30px; left: 0; right: 0; text-align: center; border-top: 1px solid rgba(44, 24, 16, 0.1); padding-top: 10px; margin: 0 40px;">
+        <div style="font-family: 'MedievalSharp', cursive; font-size: 10px; opacity: 0.3;">Into The Dark • 2025 • Да пребудет с вами свет</div>
       </div>
     </div>
   `;
@@ -416,13 +413,13 @@ export const exportToPDF = async (character: Character) => {
   document.body.appendChild(container);
   
   try {
-    // Рендерим в canvas
-    const canvas = await html2canvas(container, {
-      scale: 2,
-      backgroundColor: '#ffffff',
-      logging: false,
-    });
-    
+    // Ждем загрузки всех изображений (аватара и текстур)
+    const images = container.getElementsByTagName('img');
+    await Promise.all(Array.from(images).map(img => {
+      if (img.complete) return Promise.resolve();
+      return new Promise(resolve => { img.onload = resolve; img.onerror = resolve; });
+    }));
+
     // Создаем PDF
     const pdf = new jsPDF({
       orientation: 'portrait',
@@ -430,24 +427,45 @@ export const exportToPDF = async (character: Character) => {
       format: 'a4',
     });
     
-    const imgData = canvas.toDataURL('image/jpeg', 0.95);
-    const imgWidth = 210; // A4 width in mm
-    const pageHeight = 297; // A4 height in mm
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    const pages = container.querySelectorAll('.pdf-page');
     
-    let heightLeft = imgHeight;
-    let position = 0;
-    
-    // Добавляем первую страницу
-    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-    heightLeft -= pageHeight;
-    
-    // Если контент не помещается на одну страницу, добавляем дополнительные
-    while (heightLeft > 0) {
-      position = heightLeft - imgHeight;
-      pdf.addPage();
-      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
+    // Небольшая задержка перед рендерингом, чтобы стили применились
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    const pageHeightMM = 297;
+    const pageWidthMM = 210;
+
+    for (let i = 0; i < pages.length; i++) {
+      const page = pages[i] as HTMLElement;
+      
+      // Рендерим каждую страницу отдельно
+      const canvas = await html2canvas(page, {
+        scale: 2,
+        backgroundColor: '#f4e4bc',
+        logging: true, // Включаем логирование для отладки
+        useCORS: true,
+        allowTaint: false, // Обязательно false для toDataURL
+      });
+      
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      const imgWidth = pageWidthMM;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      let heightLeft = imgHeight;
+      let position = 0;
+      
+      while (heightLeft > 0) {
+        if (i > 0 || position < 0) pdf.addPage();
+        
+        // Закрашиваем всю страницу PDF в цвет фона, чтобы не было белых дыр
+        pdf.setFillColor(244, 228, 188); // #f4e4bc в формате RGB
+        pdf.rect(0, 0, pageWidthMM, pageHeightMM, 'F');
+        
+        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+        
+        heightLeft -= pageHeightMM;
+        position -= pageHeightMM;
+      }
     }
     
     // Сохраняем
@@ -456,9 +474,8 @@ export const exportToPDF = async (character: Character) => {
     console.error('PDF Export Error:', error);
     alert('Ошибка при экспорте PDF. Проверьте консоль для деталей.');
   } finally {
-    // Удаляем временный контейнер и стили
+    // Удаляем временный контейнер
     if (container.parentNode) document.body.removeChild(container);
-    if (fontStyles.parentNode) document.head.removeChild(fontStyles);
     if (loadingToast.parentNode) document.body.removeChild(loadingToast);
   }
 };
