@@ -61,6 +61,7 @@ const normalizeCharacter = (parsed: any): Character => {
     abilities: (parsed.abilities || []).map((a: any) => ({ ...a, actionType: a.actionType || 'action' })),
     attributeBonuses: parsed.attributeBonuses || {},
     savingThrowProficiencies: parsed.savingThrowProficiencies || [],
+    initiativeBonus: parsed.initiativeBonus || 0,
     resources: parsed.resources || [],
     currency: parsed.currency || { copper: 0, silver: 0, gold: 0 },
     skills: parsed.skills || [],
@@ -75,6 +76,7 @@ const normalizeCharacter = (parsed: any): Character => {
     bonds: parsed.bonds || '',
     flaws: parsed.flaws || '',
     traits: parsed.traits || [],
+    conditions: parsed.conditions || [],
     subrace: parsed.subrace,
     avatar: parsed.avatar,
   };

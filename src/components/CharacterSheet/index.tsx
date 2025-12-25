@@ -13,6 +13,7 @@ import { EquipmentTab } from './components/Tabs/EquipmentTab';
 import { InventoryTab } from './components/Tabs/InventoryTab';
 import { CharacterSheetModals } from './components/Modals/CharacterSheetModals';
 import { SettingsModal } from '../SettingsModal';
+import { ConditionsSection } from './components/ConditionsSection';
 
 export const CharacterSheet: React.FC = () => {
   const logic = useCharacterSheetLogic();
@@ -92,21 +93,28 @@ export const CharacterSheet: React.FC = () => {
           getModifier={logic.getModifier}
           getSkillModifier={logic.getSkillModifier}
           updateSpeed={logic.updateSpeed}
+          onRollInitiative={logic.handleRollInitiative}
+          updateInitiativeBonus={logic.updateInitiativeBonus}
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-12 lg:gap-16 lg:items-stretch">
-          <AttributesSection 
-            character={character}
-            activeTab={activeTab}
-            getModifier={logic.getModifier}
-            getSavingThrowModifier={logic.getSavingThrowModifier}
-            getSkillModifier={logic.getSkillModifier}
-            setSelectedAttribute={logic.setSelectedAttribute}
-            toggleSkillProficiency={logic.toggleSkillProficiency}
-            toggleSkillExpertise={logic.toggleSkillExpertise}
-          />
-
-          <div className="hidden lg:block w-px bg-gradient-to-b from-dark-border via-dark-border/50 to-transparent self-stretch my-6" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 lg:items-start">
+          <div className="space-y-8">
+            <AttributesSection 
+              character={character}
+              activeTab={activeTab}
+              getModifier={logic.getModifier}
+              getSavingThrowModifier={logic.getSavingThrowModifier}
+              getSkillModifier={logic.getSkillModifier}
+              setSelectedAttribute={logic.setSelectedAttribute}
+              toggleSkillProficiency={logic.toggleSkillProficiency}
+              toggleSkillExpertise={logic.toggleSkillExpertise}
+            />
+            
+            <ConditionsSection 
+              activeConditionIds={character.conditions || []}
+              onToggleCondition={logic.updateCondition}
+            />
+          </div>
 
           <div className={`flex flex-col ${activeTab === 'stats' ? 'hidden lg:flex' : 'flex'}`}>
             <motion.div
@@ -196,7 +204,10 @@ export const CharacterSheet: React.FC = () => {
           </div>
         </div>
 
-        <CharacterSheetModals {...logic} />
+        <CharacterSheetModals 
+          {...logic} 
+          autoAC={logic.calculateAutoAC ? logic.calculateAutoAC() : undefined} 
+        />
         <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
       </motion.div>
     </div>

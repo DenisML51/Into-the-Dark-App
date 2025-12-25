@@ -160,6 +160,7 @@ export interface Character {
   skills: Skill[];
   proficiencyBonus: number;
   savingThrowProficiencies: string[];
+  initiativeBonus?: number;
   resources: Resource[];
   currency: Currency;
   languagesAndProficiencies: string;
@@ -172,6 +173,7 @@ export interface Character {
   bonds: string;
   flaws: string;
   traits: Trait[];
+  conditions: string[]; // List of condition IDs
   avatar?: string; // Base64 avatar image
 }
 

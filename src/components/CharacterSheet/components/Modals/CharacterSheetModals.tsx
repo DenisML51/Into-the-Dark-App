@@ -51,6 +51,7 @@ interface CharacterSheetModalsProps {
   showACModal: boolean;
   setShowACModal: (show: boolean) => void;
   updateArmorClass: (newAC: number, newLimbs: Limb[]) => void;
+  autoAC?: number;
   showItemModal: boolean;
   closeItemModal: () => void;
   editingItem: InventoryItem | undefined;
@@ -261,6 +262,7 @@ export const CharacterSheetModals: React.FC<CharacterSheetModalsProps> = (props)
         armorClass={character.armorClass}
         limbs={character.limbs || []}
         onUpdate={updateArmorClass}
+        autoAC={props.autoAC}
       />
 
       <ItemModal

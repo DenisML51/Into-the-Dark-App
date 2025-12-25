@@ -8,6 +8,7 @@ interface ArmorClassModalProps {
   armorClass: number;
   limbs: Limb[];
   onUpdate: (ac: number, limbs: Limb[]) => void;
+  autoAC?: number;
 }
 
 export const ArmorClassModal: React.FC<ArmorClassModalProps> = ({
@@ -67,7 +68,17 @@ export const ArmorClassModal: React.FC<ArmorClassModalProps> = ({
 
             {/* Base AC */}
             <div className="bg-dark-bg rounded-xl p-4 mb-4 border-2 border-blue-500/50">
-              <div className="text-xs text-gray-400 mb-2 uppercase text-center">Общий КБ</div>
+              <div className="flex justify-between items-center mb-2">
+                <div className="text-xs text-gray-400 uppercase">Общий КБ</div>
+                {autoAC !== undefined && (
+                  <button 
+                    onClick={() => setBaseAC(autoAC)}
+                    className="text-[10px] text-blue-400 hover:text-blue-300 transition-colors uppercase font-bold"
+                  >
+                    Авто ({autoAC})
+                  </button>
+                )}
+              </div>
               <div className="flex items-center justify-center gap-3">
                 <button
                   onClick={() => setBaseAC(Math.max(0, baseAC - 1))}
