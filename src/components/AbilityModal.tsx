@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Ability, Resource, RESOURCE_ICONS } from '../types';
+import { Ability, Resource } from '../types';
 import { MarkdownEditor } from './MarkdownEditor';
 import { CustomSelect } from './CustomSelect';
+import { IconPicker } from './IconPicker';
 import { getLucideIcon } from '../utils/iconUtils';
 import { Sparkles, Zap, Clock, X, Minus, Plus } from 'lucide-react';
 
@@ -109,35 +110,12 @@ export const AbilityModal: React.FC<AbilityModalProps> = ({
                       {getLucideIcon(iconName, { size: 24 })}
                     </button>
                     
-                    <AnimatePresence>
-                      {showIconPicker && (
-                        <>
-                          <div className="fixed inset-0 z-[9998]" onClick={() => setShowIconPicker(false)} />
-                          <motion.div 
-                            initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                            className="absolute top-full left-0 mt-2 bg-dark-card border border-white/10 rounded-xl p-3 grid grid-cols-4 gap-2 z-[9999] shadow-2xl w-64 backdrop-blur-xl"
-                          >
-                            {RESOURCE_ICONS.map((ico) => (
-                              <button
-                                key={ico.name}
-                                type="button"
-                                onClick={() => {
-                                  setIconName(ico.name);
-                                  setShowIconPicker(false);
-                                }}
-                                className={`aspect-square hover:bg-white/10 rounded-lg flex items-center justify-center transition-all ${
-                                  iconName === ico.name ? 'bg-white/20 text-white' : 'text-gray-400'
-                                }`}
-                              >
-                                {getLucideIcon(ico.name, { size: 18 })}
-                              </button>
-                            ))}
-                          </motion.div>
-                        </>
-                      )}
-                    </AnimatePresence>
+                    <IconPicker
+                      isOpen={showIconPicker}
+                      onClose={() => setShowIconPicker(false)}
+                      currentIcon={iconName}
+                      onSelect={setIconName}
+                    />
                   </div>
                   
                   {/* Color Picker */}

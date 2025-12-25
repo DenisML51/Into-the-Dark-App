@@ -40,16 +40,23 @@ export const getLucideIcon = (iconName: string, props?: any) => {
 };
 
 /**
- * Extended list of icons for pickers including custom ones
+ * Lucide icons specifically selected for the picker
  */
-export const ALL_AVAILABLE_ICONS = [
-  // Custom icons IDs
-  ...Object.keys(CUSTOM_ICONS),
-  // Lucide icons used in pickers
+export const LUCIDE_PICKER_ICONS = [
   'Zap', 'Flame', 'Sparkles', 'Star', 'Sword', 'Shield', 'Swords', 'Axe', 
   'Heart', 'Brain', 'Eye', 'Droplet', 'Target', 'Activity', 'Circle', 
   'Square', 'Triangle', 'Diamond', 'Hexagon', 'Feather', 'Wind', 'CloudRain', 
   'Sun', 'Moon', 'CloudLightning', 'Snowflake', 'Skull', 'Ghost', 'Wand2', 
-  'Gem', 'Crown', 'Bookmark', 'FlaskConical', 'Scroll', 'Ghost', 'Skull', 
-  'Component', 'Dna', 'Magnet', 'Microscope', 'Palette'
+  'Gem', 'Crown', 'Bookmark', 'FlaskConical', 'Scroll', 'Component', 
+  'Dna', 'Magnet', 'Microscope', 'Palette'
 ];
+
+/**
+ * Custom icons list
+ */
+export const CUSTOM_PICKER_ICONS = Object.keys(CUSTOM_ICONS);
+
+/**
+ * Total list for types compatibility
+ */
+export const ALL_AVAILABLE_ICONS = [...CUSTOM_PICKER_ICONS, ...LUCIDE_PICKER_ICONS];

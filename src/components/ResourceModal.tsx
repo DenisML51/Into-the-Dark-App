@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RESOURCE_ICONS, Resource } from '../types';
+import { Resource } from '../types';
 import { getLucideIcon } from '../utils/iconUtils';
 import { MarkdownEditor } from './MarkdownEditor';
 import { CustomSelect } from './CustomSelect';
+import { IconPicker } from './IconPicker';
 import { X, Minus, Plus, Settings2, Sparkles, Wand2 } from 'lucide-react';
 
 interface ResourceModalProps {
@@ -98,35 +99,12 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
                       {getLucideIcon(iconName, { size: 24 })}
                     </button>
                     
-                    <AnimatePresence>
-                      {showIconPicker && (
-                        <>
-                          <div className="fixed inset-0 z-[9998]" onClick={() => setShowIconPicker(false)} />
-                          <motion.div 
-                            initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                            className="absolute top-full left-0 mt-2 bg-dark-card border border-white/10 rounded-xl p-3 grid grid-cols-4 gap-2 z-[9999] shadow-2xl w-64 backdrop-blur-xl"
-                          >
-                            {RESOURCE_ICONS.map((ico) => (
-                              <button
-                                key={ico.name}
-                                type="button"
-                                onClick={() => {
-                                  setIconName(ico.name);
-                                  setShowIconPicker(false);
-                                }}
-                                className={`aspect-square hover:bg-white/10 rounded-lg flex items-center justify-center transition-all ${
-                                  iconName === ico.name ? 'bg-white/20 text-white' : 'text-gray-400'
-                                }`}
-                              >
-                                {getLucideIcon(ico.name, { size: 18 })}
-                              </button>
-                            ))}
-                          </motion.div>
-                        </>
-                      )}
-                    </AnimatePresence>
+                    <IconPicker
+                      isOpen={showIconPicker}
+                      onClose={() => setShowIconPicker(false)}
+                      currentIcon={iconName}
+                      onSelect={setIconName}
+                    />
                   </div>
                   
                   {/* Color Picker */}
@@ -156,74 +134,33 @@ export const ResourceModal: React.FC<ResourceModalProps> = ({
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
-              <div className="grid grid-cols-3 gap-6">
-                {/* Icon Picker Column */}
+              <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Иконка</label>
-                  <div className="relative">
-                    <button
-                      onClick={() => setShowIconPicker(!showIconPicker)}
-                      className={`w-full aspect-square bg-dark-bg border-2 rounded-2xl flex items-center justify-center transition-all group ${showIconPicker ? 'border-blue-500 bg-blue-500/10' : 'border-dark-border hover:border-blue-500/50'}`}
-                    >
-                      {getLucideIcon(iconName, { size: 32, className: 'text-blue-400 group-hover:scale-110 transition-transform' })}
-                    </button>
-                    
-                    {showIconPicker && (
-                      <motion.div 
-                        initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                        className="absolute top-full left-0 mt-2 bg-dark-card border border-white/10 rounded-xl p-3 grid grid-cols-4 gap-2 z-[9999] shadow-2xl w-64"
-                      >
-                        {RESOURCE_ICONS.map((ico) => (
-                          <button
-                            key={ico.name}
-                            onClick={() => {
-                              setIconName(ico.name);
-                              setShowIconPicker(false);
-                            }}
-                            className={`aspect-square hover:bg-blue-500/20 rounded-lg flex items-center justify-center transition-all ${
-                              iconName === ico.name ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'text-gray-400'
-                            }`}
-                            title={ico.label}
-                          >
-                            {getLucideIcon(ico.name, { size: 18 })}
-                          </button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Название</label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Ярость, Очки магии..."
+                    className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                  />
                 </div>
 
-                {/* Info Column */}
-                <div className="col-span-2 space-y-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Название</label>
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Ярость, Очки магии..."
-                      className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-3 bg-dark-bg/50 border border-dark-border rounded-xl">
-                      <label className="block text-[10px] font-bold text-gray-500 uppercase mb-2 text-center">Текущее</label>
-                      <div className="flex items-center justify-between">
-                        <button onClick={() => setCurrent(Math.max(0, current - 1))} className="w-6 h-6 rounded bg-dark-card border border-dark-border flex items-center justify-center text-xs">-</button>
-                        <span className="text-xl font-black text-white">{current}</span>
-                        <button onClick={() => setCurrent(Math.min(max, current + 1))} className="w-6 h-6 rounded bg-dark-card border border-dark-border flex items-center justify-center text-xs">+</button>
-                      </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-3 bg-dark-bg/50 border border-dark-border rounded-xl">
+                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-2 text-center">Текущее</label>
+                    <div className="flex items-center justify-between">
+                      <button onClick={() => setCurrent(Math.max(0, current - 1))} className="w-6 h-6 rounded bg-dark-card border border-dark-border flex items-center justify-center text-xs">-</button>
+                      <span className="text-xl font-black text-white">{current}</span>
+                      <button onClick={() => setCurrent(Math.min(max, current + 1))} className="w-6 h-6 rounded bg-dark-card border border-dark-border flex items-center justify-center text-xs">+</button>
                     </div>
-                    <div className="p-3 bg-dark-bg/50 border border-dark-border rounded-xl">
-                      <label className="block text-[10px] font-bold text-gray-500 uppercase mb-2 text-center">Максимум</label>
-                      <div className="flex items-center justify-between">
-                        <button onClick={() => setMax(Math.max(1, max - 1))} className="w-6 h-6 rounded bg-dark-card border border-dark-border flex items-center justify-center text-xs">-</button>
-                        <span className="text-xl font-black text-white">{max}</span>
-                        <button onClick={() => setMax(max + 1)} className="w-6 h-6 rounded bg-dark-card border border-dark-border flex items-center justify-center text-xs">+</button>
-                      </div>
+                  </div>
+                  <div className="p-3 bg-dark-bg/50 border border-dark-border rounded-xl">
+                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-2 text-center">Максимум</label>
+                    <div className="flex items-center justify-between">
+                      <button onClick={() => setMax(Math.max(1, max - 1))} className="w-6 h-6 rounded bg-dark-card border border-dark-border flex items-center justify-center text-xs">-</button>
+                      <span className="text-xl font-black text-white">{max}</span>
+                      <button onClick={() => setMax(max + 1)} className="w-6 h-6 rounded bg-dark-card border border-dark-border flex items-center justify-center text-xs">+</button>
                     </div>
                   </div>
                 </div>
