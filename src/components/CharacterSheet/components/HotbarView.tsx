@@ -362,6 +362,40 @@ export const HotbarView: React.FC<HotbarViewProps> = ({
 
   return (
     <>
+      {/* Top Combat Control Panel */}
+      <div className="fixed top-[115px] left-0 right-0 z-[45] flex justify-center pointer-events-none px-8">
+        <div className="max-w-[1600px] w-full flex justify-center pointer-events-auto">
+          {!isInCombat ? (
+            <button 
+              onClick={startCombat}
+              className="group/btn flex items-center gap-3 px-8 py-3 bg-blue-500/10 backdrop-blur-xl border border-blue-500/20 rounded-2xl hover:bg-blue-500/20 hover:border-blue-500/40 transition-all shadow-2xl shadow-blue-500/5"
+            >
+              <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center border border-blue-500/30 group-hover/btn:scale-110 transition-transform">
+                <Sword size={18} className="text-blue-400" />
+              </div>
+              <span className="text-[10px] font-black text-blue-400 uppercase tracking-[0.3em]">НАЧАТЬ БОЙ • ИНИЦИАТИВА</span>
+            </button>
+          ) : (
+            <div className="flex items-center gap-2 bg-dark-bg/80 backdrop-blur-2xl border border-white/10 rounded-full p-1.5 shadow-2xl">
+              <button 
+                onClick={nextTurn}
+                className="group/btn flex items-center gap-3 px-6 py-2 bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 hover:border-amber-500/40 transition-all rounded-xl shadow-lg"
+              >
+                <ChevronUp size={18} className="text-amber-400 group-hover/btn:rotate-12 transition-transform" />
+                <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest">СЛЕДУЮЩИЙ ХОД</span>
+              </button>
+              <div className="w-px h-6 bg-white/10 mx-1" />
+              <button 
+                onClick={endCombat}
+                className="px-4 py-2 text-gray-500 hover:text-red-400 text-[9px] font-black uppercase tracking-[0.2em] transition-colors rounded-xl hover:bg-red-500/5"
+              >
+                ВЫЙТИ ИЗ БОЯ
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="fixed bottom-6 left-0 right-0 z-[40] flex flex-col items-center pointer-events-none px-4">
         
         {/* Main Hotbar System */}
@@ -594,8 +628,8 @@ export const HotbarView: React.FC<HotbarViewProps> = ({
             <div className="flex flex-wrap items-center justify-center gap-4 mb-1 pointer-events-auto">
               
               {/* Action Trackers (BG3 style dots) */}
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-dark-bg/95 backdrop-blur-3xl border border-white/10 rounded-[1.25rem] shadow-2xl relative group/actions">
-                <div className="absolute inset-0 bg-white/[0.02] pointer-events-none" />
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-dark-bg/95 backdrop-blur-3xl border border-white/10 rounded-[1.25rem] shadow-2xl relative group/actions overflow-hidden">
+                <div className="absolute inset-0 bg-white/[0.02] pointer-events-none rounded-[1.25rem]" />
                 {[
                   { id: 'action' as const, icon: Circle, color: '#3b82f6', title: 'Основное действие' },
                   { id: 'bonus' as const, icon: Triangle, color: '#22c55e', title: 'Бонусное действие' },
@@ -749,10 +783,10 @@ export const HotbarView: React.FC<HotbarViewProps> = ({
               </div>
 
               {/* Combat Stats (AC, Initiative, Prof) */}
-              <div className="flex items-center gap-6 px-6 py-2 bg-dark-bg/95 backdrop-blur-3xl border border-white/10 rounded-[1.25rem] shadow-2xl relative overflow-hidden">
+              <div className="flex items-center gap-6 px-6 py-1.5 bg-dark-bg/95 backdrop-blur-3xl border border-white/10 rounded-[1.25rem] shadow-2xl relative overflow-hidden">
                 <div className="absolute inset-0 bg-white/[0.02] pointer-events-none" />
                 <div 
-                  className="flex flex-col items-center cursor-pointer group/stat transition-all"
+                  className="flex flex-col items-center justify-center h-10 cursor-pointer group/stat transition-all"
                   onClick={() => setShowACModal(true)}
                 >
                   <span className="text-[7px] font-black text-gray-500 uppercase tracking-[0.2em] mb-0.5">DEFENSE</span>
@@ -762,10 +796,10 @@ export const HotbarView: React.FC<HotbarViewProps> = ({
                   </div>
                 </div>
                 
-                <div className="w-px h-8 bg-white/10" />
+                <div className="w-px h-10 bg-white/10" />
 
                 <div 
-                  className="flex flex-col items-center cursor-pointer group/stat transition-all"
+                  className="flex flex-col items-center justify-center h-10 cursor-pointer group/stat transition-all"
                   onClick={startCombat}
                 >
                   <span className="text-[7px] font-black text-gray-500 uppercase tracking-[0.2em] mb-0.5">INITIATIVE</span>
@@ -773,16 +807,16 @@ export const HotbarView: React.FC<HotbarViewProps> = ({
                     <Activity size={14} className="text-amber-400 group-hover/stat:scale-110 transition-transform" />
                     <span className="text-sm font-black text-amber-100">
                       {initiative !== null 
-                        ? `+${initiative}` 
-                        : `${getModifier('dexterity') >= 0 ? '+' : ''}${getModifier('dexterity')}${character.initiativeBonus ? ` + ${character.initiativeBonus}` : ''}`
+                        ? initiative 
+                        : `${getModifier('dexterity')}${character.initiativeBonus ? ` + ${character.initiativeBonus}` : ''}`
                       }
                     </span>
                   </div>
                 </div>
 
-                <div className="w-px h-8 bg-white/10" />
+                <div className="w-px h-10 bg-white/10" />
 
-                <div className="flex flex-col items-center group/stat transition-all">
+                <div className="flex flex-col items-center justify-center h-10 group/stat transition-all">
                   <span className="text-[7px] font-black text-gray-500 uppercase tracking-[0.2em] mb-0.5">PROFICIENCY</span>
                   <div className="flex items-center gap-2">
                     <Target size={14} className="text-purple-400 group-hover/stat:scale-110 transition-transform" />
@@ -790,9 +824,9 @@ export const HotbarView: React.FC<HotbarViewProps> = ({
                   </div>
                 </div>
 
-                <div className="w-px h-8 bg-white/10" />
+                <div className="w-px h-10 bg-white/10" />
 
-                <div className="flex flex-col items-center group/stat transition-all">
+                <div className="flex flex-col items-center justify-center h-10 group/stat transition-all">
                   <span className="text-[7px] font-black text-gray-500 uppercase tracking-[0.2em] mb-0.5">SPEED</span>
                   <div className="flex items-center gap-2">
                     <Wind size={14} className="text-green-400 group-hover/stat:scale-110 transition-transform" />
@@ -938,42 +972,6 @@ export const HotbarView: React.FC<HotbarViewProps> = ({
                 )}
               </div>
             </div>
-          </div>
-
-          {/* Right Section: Combat & Turn Control */}
-          <div className="flex flex-col gap-2 bg-dark-bg/95 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-3 shadow-2xl min-w-[110px] items-center justify-center relative group/combat">
-            <div className="absolute inset-0 rounded-[2.5rem] border border-white/5 pointer-events-none" />
-            <div className="absolute inset-0 rounded-[2.5rem] bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none" />
-            
-            {!isInCombat ? (
-              <button 
-                onClick={startCombat}
-                className="group/btn flex flex-col items-center gap-2 p-5 rounded-[2rem] hover:bg-blue-500/10 transition-all border border-transparent hover:border-blue-500/30 w-full relative z-10"
-              >
-                <div className="w-14 h-14 rounded-full bg-blue-500/15 flex items-center justify-center border border-blue-500/30 group-hover/btn:scale-110 group-hover/btn:bg-blue-500/25 transition-all duration-300 shadow-lg shadow-blue-500/10">
-                  <Sword size={28} className="text-blue-400" />
-                </div>
-                <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest text-center">ИНИЦИАТИВА</span>
-              </button>
-            ) : (
-              <div className="flex flex-col items-center gap-3 w-full relative z-10">
-                <button 
-                  onClick={nextTurn}
-                  className="group/btn flex flex-col items-center gap-2 p-4 rounded-[2rem] bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 hover:border-amber-500/40 transition-all w-full shadow-lg shadow-amber-500/5"
-                >
-                  <div className="w-12 h-12 rounded-full bg-amber-500/15 flex items-center justify-center border border-amber-500/30 group-hover/btn:rotate-12 transition-transform duration-300">
-                    <ChevronUp size={28} className="text-amber-400" />
-                  </div>
-                  <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest text-center leading-tight">СЛЕД.<br/>ХОД</span>
-                </button>
-                <button 
-                  onClick={endCombat}
-                  className="px-3 py-1.5 text-gray-500 hover:text-red-400 text-[8px] font-black uppercase tracking-[0.2em] transition-colors rounded-lg hover:bg-red-500/5"
-                >
-                  ВЫЙТИ
-                </button>
-              </div>
-            )}
           </div>
         </div>
       </div>
