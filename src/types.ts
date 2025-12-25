@@ -1,3 +1,5 @@
+import { ALL_AVAILABLE_ICONS } from './utils/iconUtils';
+
 export interface Skill {
   id: string;
   name: string;
@@ -539,39 +541,9 @@ export const calculateMaxSanity = (
   return Math.min(100, Math.max(0, total));
 };
 
-// Available Lucide icons for resources
-export const RESOURCE_ICONS = [
-  { name: 'Zap', label: 'Молния' },
-  { name: 'Flame', label: 'Огонь' },
-  { name: 'Sparkles', label: 'Искры' },
-  { name: 'Star', label: 'Звезда' },
-  { name: 'Sword', label: 'Меч' },
-  { name: 'Shield', label: 'Щит' },
-  { name: 'Swords', label: 'Мечи' },
-  { name: 'Axe', label: 'Топор' },
-  { name: 'Heart', label: 'Сердце' },
-  { name: 'Brain', label: 'Мозг' },
-  { name: 'Eye', label: 'Глаз' },
-  { name: 'Droplet', label: 'Капля' },
-  { name: 'Target', label: 'Цель' },
-  { name: 'Activity', label: 'Активность' },
-  { name: 'Circle', label: 'Круг' },
-  { name: 'Square', label: 'Квадрат' },
-  { name: 'Triangle', label: 'Треугольник' },
-  { name: 'Diamond', label: 'Алмаз' },
-  { name: 'Hexagon', label: 'Шестиугольник' },
-  { name: 'Feather', label: 'Перо' },
-  { name: 'Wind', label: 'Ветер' },
-  { name: 'CloudRain', label: 'Дождь' },
-  { name: 'Sun', label: 'Солнце' },
-  { name: 'Moon', label: 'Луна' },
-  { name: 'CloudLightning', label: 'Молния' },
-  { name: 'Snowflake', label: 'Снежинка' },
-  { name: 'Skull', label: 'Череп' },
-  { name: 'Ghost', label: 'Призрак' },
-  { name: 'Wand2', label: 'Жезл' },
-  { name: 'Gem', label: 'Самоцвет' },
-  { name: 'Crown', label: 'Корона' },
-  { name: 'Bookmark', label: 'Закладка' },
-];
+// Available icons for resources and abilities
+export const RESOURCE_ICONS = ALL_AVAILABLE_ICONS.map(name => ({
+  name,
+  label: name // In a real app, you might want more descriptive labels
+}));
 
