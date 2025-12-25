@@ -22,6 +22,8 @@ import { getLucideIcon } from '../utils/iconUtils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SettingsModal } from './SettingsModal';
 
+import { exportToPDF } from '../utils/pdfExport';
+
 const tabs: { id: TabType; label: string; icon: any }[] = [
   { id: 'stats', label: 'Статы', icon: BarChart2 },
   { id: 'personality', label: 'Герой', icon: User },
@@ -239,6 +241,10 @@ export const Navbar: React.FC = () => {
                       Экспорт в JSON
                     </button>
                     <button
+                      onClick={() => {
+                        exportToPDF(character);
+                        setIsMenuOpen(false);
+                      }}
                       className="w-full flex items-center gap-3 px-3 py-2 hover:bg-dark-hover rounded-xl text-gray-300 hover:text-white transition-colors text-sm"
                     >
                       <Download className="w-4 h-4" />

@@ -3,16 +3,45 @@ import html2canvas from 'html2canvas';
 import { Character } from '../types';
 import { RACES, CLASSES, ATTRIBUTES_LIST, SKILLS_LIST, calculateMaxSanity } from '../types';
 
+const loadFonts = async () => {
+  // jspdf doesn't support unicode by default well without embedding fonts.
+  // For now we'll rely on the canvas rendering which handles it better.
+};
+
 export const exportToPDF = async (character: Character) => {
+  // Create a toast to show progress
+  const loadingToast = document.createElement('div');
+  loadingToast.style.position = 'fixed';
+  loadingToast.style.bottom = '20px';
+  loadingToast.style.left = '50%';
+  loadingToast.style.transform = 'translateX(-50%)';
+  loadingToast.style.backgroundColor = '#1a1a1a';
+  loadingToast.style.color = '#fff';
+  loadingToast.style.padding = '12px 24px';
+  loadingToast.style.borderRadius = '12px';
+  loadingToast.style.border = '1px solid #333';
+  loadingToast.style.zIndex = '9999';
+  loadingToast.style.fontSize = '14px';
+  loadingToast.innerText = 'Подготовка PDF...';
+  document.body.appendChild(loadingToast);
+
   // Создаем временный контейнер для рендеринга
   const container = document.createElement('div');
   container.style.position = 'absolute';
   container.style.left = '-9999px';
-  container.style.width = '800px';
+  container.style.top = '0';
+  container.style.width = '850px'; // Closer to A4 ratio
   container.style.padding = '40px';
   container.style.backgroundColor = '#ffffff';
   container.style.color = '#000000';
-  container.style.fontFamily = 'Arial, sans-serif';
+  
+  // Font styles are important for html2canvas
+  const fontStyles = document.createElement('style');
+  fontStyles.innerHTML = `
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+    * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important; }
+  `;
+  document.head.appendChild(fontStyles);
   
   const race = RACES.find(r => r.id === character.race);
   const charClass = CLASSES.find(c => c.id === character.class);
@@ -401,7 +430,7 @@ export const exportToPDF = async (character: Character) => {
       format: 'a4',
     });
     
-    const imgData = canvas.toDataURL('image/png');
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
     const imgWidth = 210; // A4 width in mm
     const pageHeight = 297; // A4 height in mm
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
@@ -410,21 +439,26 @@ export const exportToPDF = async (character: Character) => {
     let position = 0;
     
     // Добавляем первую страницу
-    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
     heightLeft -= pageHeight;
     
     // Если контент не помещается на одну страницу, добавляем дополнительные
     while (heightLeft > 0) {
       position = heightLeft - imgHeight;
       pdf.addPage();
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
       heightLeft -= pageHeight;
     }
     
     // Сохраняем
     pdf.save(`${character.name || 'character'}.pdf`);
+  } catch (error) {
+    console.error('PDF Export Error:', error);
+    alert('Ошибка при экспорте PDF. Проверьте консоль для деталей.');
   } finally {
-    // Удаляем временный контейнер
-    document.body.removeChild(container);
+    // Удаляем временный контейнер и стили
+    if (container.parentNode) document.body.removeChild(container);
+    if (fontStyles.parentNode) document.head.removeChild(fontStyles);
+    if (loadingToast.parentNode) document.body.removeChild(loadingToast);
   }
 };
