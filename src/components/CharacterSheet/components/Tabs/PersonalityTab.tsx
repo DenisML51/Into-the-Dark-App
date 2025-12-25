@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Settings, Plus, Sparkles, User, History, Heart, Target, Users, BookOpen, Fingerprint } from 'lucide-react';
+import { Settings, Plus, Sparkles, User, History as HistoryLogIcon, Heart, Target, Users, BookOpen, Fingerprint } from 'lucide-react';
 import { Character, Trait, Race, Class } from '../../../../types';
 import { MarkdownEditor } from '../../../MarkdownEditor';
 import { MarkdownText } from '../../../MarkdownText';

@@ -16,12 +16,20 @@ export const SanityModal: React.FC<SanityModalProps> = ({
   maxSanity,
   onUpdate,
 }) => {
-  const [tempSanity, setTempSanity] = useState(currentSanity);
+  const [tempSanity, setTempSanity] = useState(isNaN(currentSanity) ? 0 : currentSanity);
   const [restoreAmount, setRestoreAmount] = useState('');
   const [lossAmount, setLossAmount] = useState('');
 
+  // Sync tempSanity when currentSanity or isOpen changes
+  React.useEffect(() => {
+    if (isOpen) {
+      setTempSanity(isNaN(currentSanity) ? 0 : currentSanity);
+    }
+  }, [isOpen, currentSanity]);
+
   const handleSave = () => {
-    onUpdate(tempSanity);
+    const finalValue = isNaN(tempSanity) ? 0 : tempSanity;
+    onUpdate(finalValue);
     onClose();
   };
 

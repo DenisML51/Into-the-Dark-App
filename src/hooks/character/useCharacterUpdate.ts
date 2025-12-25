@@ -3,45 +3,76 @@ import { Character, Currency, Skill, Limb, getProficiencyBonus } from '../../typ
 
 export const useCharacterUpdate = (
   character: Character | null,
-  updateCharacter: (char: Character) => void,
+  updateCharacter: (char: Character, silent?: boolean) => void,
+  logHistory: (message: string, type?: 'health' | 'sanity' | 'resource' | 'inventory' | 'exp' | 'other') => void,
   settings: any
 ) => {
   if (!character) return null;
 
   const updateHealth = (current: number, max: number, temp: number, bonus: number) => {
-    const diff = current - character.currentHP;
-    updateCharacter({
-      ...character,
-      currentHP: current,
-      maxHP: max,
-      tempHP: temp,
-      maxHPBonus: bonus,
-    });
-    if (settings.notifications && diff !== 0) {
-      if (diff > 0) toast.success(`Здоровье: +${diff} (${current}/${max + bonus})`);
-      else toast.error(`Здоровье: ${diff} (${current}/${max + bonus})`);
+    const nextHP = isNaN(Number(current)) ? 0 : Number(current);
+    const nextMax = isNaN(Number(max)) ? 10 : Number(max);
+    const nextTemp = isNaN(Number(temp)) ? 0 : Number(temp);
+    const nextBonus = isNaN(Number(bonus)) ? 0 : Number(bonus);
+    
+    const currentHP = isNaN(Number(character?.currentHP)) ? 0 : Number(character?.currentHP);
+    const diff = nextHP - currentHP;
+    
+    if (diff !== 0) {
+      const message = diff > 0 
+        ? `Получено лечение: +${diff} HP (${nextHP}/${nextMax + nextBonus})`
+        : `Получен урон: ${diff} HP (${nextHP}/${nextMax + nextBonus})`;
+      logHistory(message, 'health');
     }
+
+    if (settings.notifications && diff !== 0) {
+      if (diff > 0) toast.success(`Здоровье: +${diff} (${nextHP}/${nextMax + nextBonus})`);
+      else toast.error(`Здоровье: ${diff} (${nextHP}/${nextMax + nextBonus})`);
+    }
+
+    updateCharacter(prev => ({
+      ...prev,
+      currentHP: nextHP,
+      maxHP: nextMax,
+      tempHP: nextTemp,
+      maxHPBonus: nextBonus,
+    }), true);
   };
 
   const updateSanity = (newSanity: number, maxSanity: number) => {
-    const clampedSanity = Math.min(maxSanity, Math.max(0, newSanity));
-    const diff = clampedSanity - character.sanity;
-    updateCharacter({ ...character, sanity: clampedSanity });
-    if (settings.notifications && diff !== 0) {
-      if (diff < 0) toast.error(`Потеря рассудка: ${diff} (${clampedSanity}/${maxSanity})`);
-      else toast.success(`Рассудок восстановлен: +${diff} (${clampedSanity}/${maxSanity})`);
+    const nextSanity = isNaN(Number(newSanity)) ? 0 : Number(newSanity);
+    const maxVal = isNaN(Number(maxSanity)) ? 100 : Number(maxSanity);
+    const clampedSanity = Math.min(maxVal, Math.max(0, nextSanity));
+    
+    const currentSanity = isNaN(Number(character?.sanity)) ? 0 : Number(character?.sanity);
+    const diff = clampedSanity - currentSanity;
+
+    if (diff !== 0) {
+      const message = diff > 0 
+        ? `Рассудок восстановлен: +${diff} (${clampedSanity}/${maxVal})`
+        : `Потеря рассудка: ${diff} (${clampedSanity}/${maxVal})`;
+      logHistory(message, 'sanity');
     }
+
+    if (settings.notifications && diff !== 0) {
+      if (diff < 0) toast.error(`Потеря рассудка: ${diff} (${clampedSanity}/${maxVal})`);
+      else toast.success(`Рассудок восстановлен: +${diff} (${clampedSanity}/${maxVal})`);
+    }
+
+    updateCharacter(prev => ({ ...prev, sanity: clampedSanity }), true);
   };
 
   const saveExperience = (newExperience: number, newLevel: number) => {
-    const oldLevel = character.level;
+    const oldLevel = character?.level || 1;
+    const oldExp = character?.experience || 0;
     const newProfBonus = getProficiencyBonus(newLevel);
-    updateCharacter({
-      ...character,
-      experience: newExperience,
-      level: newLevel,
-      proficiencyBonus: newProfBonus,
-    });
+
+    if (newLevel > oldLevel) {
+      logHistory(`Уровень повышен до ${newLevel}!`, 'exp');
+    } else if (newExperience !== oldExp) {
+      logHistory(`Опыт обновлен: ${newExperience}`, 'exp');
+    }
+
     if (settings.notifications) {
       if (newLevel > oldLevel) {
         toast.success(`Уровень повышен! Теперь вы ${newLevel} уровня`, { duration: 5000, icon: '🎉' });
@@ -49,6 +80,13 @@ export const useCharacterUpdate = (
         toast.success(`Опыт обновлен: ${newExperience}`);
       }
     }
+
+    updateCharacter(prev => ({
+      ...prev,
+      experience: newExperience,
+      level: newLevel,
+      proficiencyBonus: newProfBonus,
+    }), true);
   };
 
   const updateAttributeValue = (attrId: string, newValue: number, newBonus: number) => {

@@ -20,6 +20,7 @@ export const useCharacterSheetLogic = () => {
     activeTab, 
     setActiveTab, 
     updateResourceCount,
+    logHistory,
     settings
   } = useCharacter();
   
@@ -29,9 +30,9 @@ export const useCharacterSheetLogic = () => {
   // Initialize Decentralized Hooks
   const stats = useCharacterStats(character);
   const modals = useCharacterModals(setActiveTab, setInventorySubTab);
-  const inventory = useCharacterInventory(character, updateCharacter, settings, stats?.getModifierValue || ((id: string) => 0));
+  const inventory = useCharacterInventory(character, updateCharacter, logHistory, settings, stats?.getModifierValue || ((id: string) => 0));
   const actions = useCharacterActions(character, updateCharacter);
-  const updates = useCharacterUpdate(character, updateCharacter, settings);
+  const updates = useCharacterUpdate(character, updateCharacter, logHistory, settings);
   const spellsHook = useCharacterSpells(character, updateCharacter);
 
   if (!character || !stats || !inventory || !actions || !updates || !spellsHook) {
@@ -108,10 +109,16 @@ export const useCharacterSheetLogic = () => {
     handleRollInitiative: () => {
       const result = stats.rollInitiative();
       const bonusStr = result.bonus !== 0 ? ` + ${result.bonus} (бонус)` : '';
-      toast.success(`Инициатива: ${result.total} (${result.roll} + ${result.mod >= 0 ? '+' : ''}${result.mod}${bonusStr})`, {
+      const totalStr = `${result.total} (${result.roll} + ${result.mod >= 0 ? '+' : ''}${result.mod}${bonusStr})`;
+      
+      toast.success(`Инициатива: ${totalStr}`, {
         icon: '🎲',
         duration: 4000,
       });
+
+      // Using setTimeout to ensure character context state is ready
+      setTimeout(() => logHistory(`Бросок инициативы: ${totalStr}`, 'other'), 0);
+      
       return result;
     },
 

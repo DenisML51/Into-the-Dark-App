@@ -3,7 +3,8 @@ import { Character, InventoryItem, Attack } from '../../types';
 
 export const useCharacterInventory = (
   character: Character | null,
-  updateCharacter: (char: Character) => void,
+  updateCharacter: (char: Character, silent?: boolean) => void,
+  logHistory: (message: string, type?: 'health' | 'sanity' | 'resource' | 'inventory' | 'exp' | 'other') => void,
   settings: any,
   getModifierValue: (attrId: string) => number
 ) => {
@@ -44,106 +45,133 @@ export const useCharacterInventory = (
   };
 
   const deleteItem = (itemId: string) => {
+    const item = character.inventory.find(i => i.id === itemId);
     const newInventory = character.inventory.filter(i => i.id !== itemId);
     updateCharacter({ ...character, inventory: newInventory });
+    if (item) logHistory(`Удален предмет: ${item.name}`, 'inventory');
   };
 
   const equipItem = (itemId: string) => {
-    const item = character.inventory.find(i => i.id === itemId);
-    if (!item) return;
+    updateCharacter(prev => {
+      const item = prev.inventory.find(i => i.id === itemId);
+      if (!item) return prev;
 
-    let newAttacks = [...character.attacks];
-    let newInventory = [...character.inventory];
+      let newAttacks = [...prev.attacks];
+      let newInventory = [...prev.inventory];
 
-    if (item.type === 'armor') {
-      newInventory = character.inventory.map(i => ({
-        ...i,
-        equipped: i.id === itemId ? true : (i.type === 'armor' ? false : i.equipped),
-      }));
-      
-      const newLimbs = character.limbs.map(limb => ({
-        ...limb,
-        ac: item.limbACs?.[limb.id as keyof typeof item.limbACs] || 0,
-      }));
-      
-      const newAC = calculateACForState(newInventory, character.attributes);
-      
-      updateCharacter({
-        ...character,
-        armorClass: newAC,
-        limbs: newLimbs,
-        inventory: newInventory,
-      });
-    } else if (item.type === 'weapon') {
-      newInventory = character.inventory.map(i => 
-        i.id === itemId ? { ...i, equipped: true } : i
-      );
-      const weaponAttack: Attack = {
-        id: `attack_weapon_${itemId}`,
-        name: item.name,
-        damage: item.damage || '1d6',
-        damageType: item.damageType || 'Физический',
-        hitBonus: 0,
-        actionType: 'action',
-        weaponId: itemId,
-        usesAmmunition: item.weaponClass === 'ranged',
-        ammunitionCost: 1,
-        attribute: item.weaponClass === 'melee' ? 'strength' : 'dexterity',
-      };
-      newAttacks.push(weaponAttack);
-      updateCharacter({ ...character, inventory: newInventory, attacks: newAttacks });
-    } else {
-      newInventory = character.inventory.map(i => 
-        i.id === itemId ? { ...i, equipped: true } : i
-      );
-      updateCharacter({ ...character, inventory: newInventory });
-    }
+      if (item.type === 'armor') {
+        newInventory = prev.inventory.map(i => ({
+          ...i,
+          equipped: i.id === itemId ? true : (i.type === 'armor' ? false : i.equipped),
+        }));
+        
+        const newLimbs = prev.limbs.map(limb => ({
+          ...limb,
+          ac: item.limbACs?.[limb.id as keyof typeof item.limbACs] || 0,
+        }));
+        
+        const newAC = calculateACForState(newInventory, prev.attributes);
+        
+        return {
+          ...prev,
+          armorClass: newAC,
+          limbs: newLimbs,
+          inventory: newInventory,
+        };
+      } else if (item.type === 'weapon') {
+        newInventory = prev.inventory.map(i => 
+          i.id === itemId ? { ...i, equipped: true } : i
+        );
+        const weaponAttack: Attack = {
+          id: `attack_weapon_${itemId}`,
+          name: item.name,
+          damage: item.damage || '1d6',
+          damageType: item.damageType || 'Физический',
+          hitBonus: 0,
+          actionType: 'action',
+          weaponId: itemId,
+          usesAmmunition: item.weaponClass === 'ranged',
+          ammunitionCost: 1,
+          attribute: item.weaponClass === 'melee' ? 'strength' : 'dexterity',
+        };
+        newAttacks.push(weaponAttack);
+        return { ...prev, inventory: newInventory, attacks: newAttacks };
+      } else {
+        newInventory = prev.inventory.map(i => 
+          i.id === itemId ? { ...i, equipped: true } : i
+        );
+        return { ...prev, inventory: newInventory };
+      }
+    }, true);
 
-    if (settings.notifications) {
-      toast.success(`Экипировано: ${item.name}`);
+    const item = character?.inventory.find(i => i.id === itemId);
+    if (item) {
+      logHistory(`Экипировано: ${item.name}`, 'inventory');
+      if (settings.notifications) {
+        toast.success(`Экипировано: ${item.name}`);
+      }
     }
   };
 
   const unequipItem = (itemId: string) => {
-    const item = character.inventory.find(i => i.id === itemId);
-    if (!item) return;
+    updateCharacter(prev => {
+      const item = prev.inventory.find(i => i.id === itemId);
+      if (!item) return prev;
 
-    const newInventory = character.inventory.map(i => 
-      i.id === itemId ? { ...i, equipped: false } : i
-    );
+      const newInventory = prev.inventory.map(i => 
+        i.id === itemId ? { ...i, equipped: false } : i
+      );
 
-    if (item.type === 'armor') {
-      const newLimbs = character.limbs.map(limb => ({
-        ...limb,
-        ac: 0,
-      }));
-      const newAC = calculateACForState(newInventory, character.attributes);
-      updateCharacter({
-        ...character,
-        armorClass: newAC,
-        limbs: newLimbs,
-        inventory: newInventory,
-      });
-    } else if (item.type === 'weapon') {
-      const newAttacks = character.attacks.filter(attack => attack.weaponId !== itemId);
-      updateCharacter({ ...character, inventory: newInventory, attacks: newAttacks });
-    } else {
-      updateCharacter({ ...character, inventory: newInventory });
-    }
+      if (item.type === 'armor') {
+        const newLimbs = prev.limbs.map(limb => ({
+          ...limb,
+          ac: 0,
+        }));
+        const newAC = calculateACForState(newInventory, prev.attributes);
+        return {
+          ...prev,
+          armorClass: newAC,
+          limbs: newLimbs,
+          inventory: newInventory,
+        };
+      } else if (item.type === 'weapon') {
+        const newAttacks = prev.attacks.filter(attack => attack.weaponId !== itemId);
+        return { ...prev, inventory: newInventory, attacks: newAttacks };
+      } else {
+        return { ...prev, inventory: newInventory };
+      }
+    }, true);
 
-    if (settings.notifications) {
-      toast(`Снято: ${item.name}`, { icon: '📦' });
+    const item = character?.inventory.find(i => i.id === itemId);
+    if (item) {
+      logHistory(`Снято: ${item.name}`, 'inventory');
+      if (settings.notifications) {
+        toast(`Снято: ${item.name}`, { icon: '📦' });
+      }
     }
   };
 
   const updateItemQuantity = (itemId: string, delta: number) => {
-    const newInventory = character.inventory.map(item => {
-      if (item.id === itemId && (item.type === 'item' || item.type === 'ammunition')) {
-        return { ...item, quantity: Math.max(0, (item.quantity || 1) + delta) };
+    updateCharacter(prev => {
+      const item = prev.inventory.find(i => i.id === itemId);
+      if (!item) return prev;
+
+      const newInventory = prev.inventory.map(i => {
+        if (i.id === itemId && (i.type === 'item' || i.type === 'ammunition')) {
+          return { ...i, quantity: Math.max(0, (i.quantity || 1) + delta) };
+        }
+        return i;
+      });
+
+      if (delta !== 0) {
+        const message = delta > 0 
+          ? `Получено: ${item.name} (+${delta})`
+          : `Потрачено: ${item.name} (${delta})`;
+        setTimeout(() => logHistory(message, 'inventory'), 0);
       }
-      return item;
-    });
-    updateCharacter({ ...character, inventory: newInventory });
+
+      return { ...prev, inventory: newInventory };
+    }, true);
   };
 
   return {

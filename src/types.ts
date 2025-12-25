@@ -151,6 +151,13 @@ export interface Spell {
   color?: string; // Custom color
 }
 
+export interface HistoryEntry {
+  id: string;
+  timestamp: number;
+  message: string;
+  type: 'health' | 'sanity' | 'resource' | 'inventory' | 'exp' | 'other';
+}
+
 export interface Character {
   id?: string; // ID персонажа для управления несколькими персонажами
   name: string;
@@ -203,6 +210,7 @@ export interface Character {
   traits: Trait[];
   conditions: string[]; // List of condition IDs
   avatar?: string; // Base64 avatar image
+  history?: HistoryEntry[];
 }
 
 export const calculateLimbMaxHP = (maxHP: number, constitution: number): number => {

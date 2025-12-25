@@ -2,7 +2,7 @@ import { Character, Spell } from '../../types';
 
 export const useCharacterSpells = (
   character: Character | null,
-  updateCharacter: (char: Character) => void
+  updateCharacter: (char: Character, silent?: boolean) => void
 ) => {
   if (!character) return null;
 

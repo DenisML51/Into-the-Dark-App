@@ -252,7 +252,9 @@ export const CharacterSheetModals: React.FC<CharacterSheetModalsProps> = (props)
         onClose={() => setShowSanityModal(false)}
         currentSanity={character.sanity}
         maxSanity={getMaxSanity()}
-        onUpdate={updateSanity}
+        onUpdate={(newSanity) => {
+          updateSanity(newSanity, getMaxSanity());
+        }}
       />
 
       <ExperienceModal

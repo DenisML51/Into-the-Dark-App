@@ -20,8 +20,9 @@ interface CharacterContextType {
   charactersList: CharacterPreview[];
   activeTab: TabType;
   setActiveTab: (tab: TabType) => void;
-  updateCharacter: (character: Character) => void;
+  updateCharacter: (character: Character | ((prev: Character) => Character), silent?: boolean) => void;
   updateResourceCount: (resourceId: string, delta: number) => void;
+  logHistory: (message: string, type?: 'health' | 'sanity' | 'resource' | 'inventory' | 'exp' | 'other') => void;
   loadCharacter: (characterId: string) => void;
   createCharacter: (character: Character) => string;
   deleteCharacter: (characterId: string) => void;
@@ -39,6 +40,9 @@ const CHARACTERS_LIST_KEY = 'trpg_characters_list';
 const getCharacterStorageKey = (id: string) => `trpg_character_${id}`;
 
 const normalizeCharacter = (parsed: any): Character => {
+  const sanity = (parsed.sanity !== undefined && !isNaN(Number(parsed.sanity))) ? Number(parsed.sanity) : 50;
+  const currentHP = (parsed.currentHP !== undefined && !isNaN(Number(parsed.currentHP))) ? Number(parsed.currentHP) : 10;
+  
   return {
     ...parsed,
     id: parsed.id,
@@ -46,12 +50,17 @@ const normalizeCharacter = (parsed: any): Character => {
     experience: parsed.experience || 0,
     speed: parsed.speed || 30,
     armorClass: parsed.armorClass || 10,
-    sanity: parsed.sanity !== undefined ? parsed.sanity : 50,
-    currentHP: parsed.currentHP !== undefined ? parsed.currentHP : 10,
+    sanity: isNaN(sanity) ? 50 : sanity,
+    currentHP: isNaN(currentHP) ? 10 : currentHP,
     maxHP: parsed.maxHP || 10,
     tempHP: parsed.tempHP || 0,
     maxHPBonus: parsed.maxHPBonus || 0,
-    limbs: parsed.limbs || [],
+    limbs: (parsed.limbs || []).map((l: any) => ({
+      ...l,
+      currentHP: isNaN(Number(l.currentHP)) ? (l.maxHP || 10) : Number(l.currentHP),
+      maxHP: isNaN(Number(l.maxHP)) ? 10 : Number(l.maxHP),
+      ac: isNaN(Number(l.ac)) ? 10 : Number(l.ac)
+    })),
     inventory: parsed.inventory || [],
     inventoryNotes: parsed.inventoryNotes || '',
     attacksNotes: parsed.attacksNotes || '',
@@ -71,7 +80,11 @@ const normalizeCharacter = (parsed: any): Character => {
     attributeBonuses: parsed.attributeBonuses || {},
     savingThrowProficiencies: parsed.savingThrowProficiencies || [],
     initiativeBonus: parsed.initiativeBonus || 0,
-    resources: parsed.resources || [],
+    resources: (parsed.resources || []).map((r: any) => ({
+      ...r,
+      current: isNaN(Number(r.current)) ? (r.max || 0) : Number(r.current),
+      max: isNaN(Number(r.max)) ? 0 : Number(r.max)
+    })),
     currency: parsed.currency || { copper: 0, silver: 0, gold: 0 },
     skills: parsed.skills || [],
     proficiencyBonus: parsed.proficiencyBonus || 2,
@@ -86,6 +99,7 @@ const normalizeCharacter = (parsed: any): Character => {
     flaws: parsed.flaws || '',
     traits: parsed.traits || [],
     conditions: parsed.conditions || [],
+    history: parsed.history || [],
     subrace: parsed.subrace,
     avatar: parsed.avatar,
   };
@@ -94,6 +108,7 @@ const normalizeCharacter = (parsed: any): Character => {
 export const CharacterProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [character, setCharacter] = useState<Character | null>(null);
   const [charactersList, setCharactersList] = useState<CharacterPreview[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('personality');
   const [settings, setSettings] = useState({
     storagePath: localStorage.getItem('trpg_storage_path'),
@@ -102,177 +117,67 @@ export const CharacterProvider: React.FC<{ children: ReactNode }> = ({ children 
     notifications: localStorage.getItem('trpg_notifications') !== 'false',
   });
 
-  // Загружаем список персонажей при монтировании и мигрируем старые данные
-  useEffect(() => {
-    migrateOldData();
-    loadCharactersList();
-
-    const handleSettingsUpdate = (e: any) => {
-      const s = e.detail;
-      setSettings({
-        storagePath: s.storagePath,
-        autoSave: s.autoSave,
-        compactCards: s.compactCards,
-        notifications: s.showNotifications,
+  const updateCharacter = async (newCharacterOrUpdater: Character | ((prev: Character) => Character), silent: boolean = false) => {
+    if (typeof newCharacterOrUpdater === 'function') {
+      setCharacter(prev => {
+        if (!prev) return null;
+        const updated = newCharacterOrUpdater(prev);
+        return normalizeCharacter(updated);
       });
-    };
-    window.addEventListener('app-settings-updated', handleSettingsUpdate);
-    return () => window.removeEventListener('app-settings-updated', handleSettingsUpdate);
-  }, []);
+    } else {
+      const normalized = normalizeCharacter(newCharacterOrUpdater);
+      setCharacter(normalized);
+    }
+    
+    // Silence notification logic is already handled in the useEffect that watches 'character'
+  };
 
-  // Перезагружаем список при смене пути
+  // Sync character changes to storage and list
   useEffect(() => {
-    loadCharactersList();
-  }, [settings.storagePath]);
-
-  const migrateOldData = () => {
-    try {
-      // Проверяем старый формат (один персонаж в 'trpg_character')
-      const oldCharacter = localStorage.getItem('trpg_character');
-      if (oldCharacter) {
-        try {
-          const parsed = JSON.parse(oldCharacter);
-          if (parsed && typeof parsed === 'object' && parsed.name && parsed.attributes) {
-            // Мигрируем старого персонажа в новый формат
-            const id = `char_migrated_${Date.now()}`;
-            const normalized = normalizeCharacter({ ...parsed, id });
-            
-            // Сохраняем в новом формате
-            localStorage.setItem(getCharacterStorageKey(id), JSON.stringify(normalized));
-            
-            // Добавляем в список
-            const preview: CharacterPreview = {
-              id,
-              name: normalized.name,
-              class: normalized.class,
-              subclass: normalized.subclass,
-              level: normalized.level,
-              currentHP: normalized.currentHP,
-              maxHP: normalized.maxHP,
-              avatar: normalized.avatar,
-            };
-            
-            const existingList = (() => {
-              try {
-                const saved = localStorage.getItem(CHARACTERS_LIST_KEY);
-                return saved ? JSON.parse(saved) : [];
-              } catch {
-                return [];
-              }
-            })();
-            
-            if (!existingList.find((c: CharacterPreview) => c.id === id)) {
-              localStorage.setItem(CHARACTERS_LIST_KEY, JSON.stringify([...existingList, preview]));
-            }
-            
-            // Удаляем старый формат
-            localStorage.removeItem('trpg_character');
-          }
-        } catch (e) {
-          console.error('Failed to migrate old character:', e);
-        }
-      }
-    } catch (e) {
-      console.error('Failed to migrate old data:', e);
+    if (character && isLoaded) {
+      saveToStorage(character, true);
+      updateList(character);
     }
-  };
+  }, [character, isLoaded]);
 
-  const loadCharactersList = async () => {
-    try {
-      if (settings.storagePath && (window as any).electronAPI) {
-        const characters = await (window as any).electronAPI.loadCharacters(settings.storagePath);
-        const previews: CharacterPreview[] = characters.map((c: Character) => ({
-          id: c.id,
-          name: c.name,
-          class: c.class,
-          subclass: c.subclass,
-          level: c.level,
-          currentHP: c.currentHP,
-          maxHP: c.maxHP,
-          avatar: c.avatar,
-        }));
-        setCharactersList(previews);
-        return;
-      }
-
-      const saved = localStorage.getItem(CHARACTERS_LIST_KEY);
-      if (saved) {
-        const list = JSON.parse(saved);
-        setCharactersList(Array.isArray(list) ? list : []);
-      } else {
-        setCharactersList([]);
-      }
-    } catch (e) {
-      console.error('Failed to load characters list:', e);
-      setCharactersList([]);
-    }
-  };
-
-  const saveCharactersList = (list: CharacterPreview[]) => {
-    try {
-      localStorage.setItem(CHARACTERS_LIST_KEY, JSON.stringify(list));
-      setCharactersList(list);
-    } catch (e) {
-      console.error('Failed to save characters list:', e);
-    }
-  };
-
-  const updateCharacter = async (newCharacter: Character) => {
-    if (!newCharacter.id) {
-      console.error('Character must have an ID');
-      return;
-    }
-
-    const normalized = normalizeCharacter(newCharacter);
-    
-    // Use functional update to ensure we always have the latest state
-    setCharacter(normalized);
-    
-    // Also update in characters list
+  const updateList = (normalized: Character) => {
     setCharactersList(prevList => {
-      const updatedList = prevList.map(c => 
-        c.id === normalized.id 
-          ? {
-              id: normalized.id,
-              name: normalized.name,
-              class: normalized.class,
-              subclass: normalized.subclass,
-              level: normalized.level,
-              currentHP: normalized.currentHP,
-              maxHP: normalized.maxHP,
-              avatar: normalized.avatar,
-            }
-          : c
-      );
+      const existingIndex = prevList.findIndex(c => c.id === normalized.id);
+      let updatedList;
       
-      if (!updatedList.find(c => c.id === normalized.id)) {
-        updatedList.push({
-          id: normalized.id,
-          name: normalized.name,
-          class: normalized.class,
-          subclass: normalized.subclass,
-          level: normalized.level,
-          currentHP: normalized.currentHP,
-          maxHP: normalized.maxHP,
-          avatar: normalized.avatar,
-        });
+      const preview: CharacterPreview = {
+        id: normalized.id!,
+        name: normalized.name,
+        class: normalized.class,
+        subclass: normalized.subclass,
+        level: normalized.level,
+        currentHP: normalized.currentHP,
+        maxHP: normalized.maxHP,
+        avatar: normalized.avatar,
+      };
+
+      if (existingIndex >= 0) {
+        updatedList = [...prevList];
+        updatedList[existingIndex] = preview;
+      } else {
+        updatedList = [...prevList, preview];
       }
       
-      // Save updated list to storage
       localStorage.setItem(CHARACTERS_LIST_KEY, JSON.stringify(updatedList));
       return updatedList;
     });
+  };
 
-    // Сохраняем персонажа
+  const saveToStorage = async (normalized: Character, silent: boolean) => {
     try {
       if (settings.storagePath && (window as any).electronAPI) {
         const filePath = `${settings.storagePath}/${normalized.id}.json`;
         await (window as any).electronAPI.saveCharacter(filePath, normalized);
       } else {
-        localStorage.setItem(getCharacterStorageKey(normalized.id), JSON.stringify(normalized));
+        localStorage.setItem(getCharacterStorageKey(normalized.id!), JSON.stringify(normalized));
       }
 
-      if (settings.notifications) {
+      if (settings.notifications && !silent) {
         toast.success('Персонаж сохранен');
       }
     } catch (e) {
@@ -280,22 +185,51 @@ export const CharacterProvider: React.FC<{ children: ReactNode }> = ({ children 
     }
   };
 
-  const updateResourceCount = (resourceId: string, delta: number) => {
-    if (!character) return;
-    const resource = character.resources.find(r => r.id === resourceId);
-    if (!resource) return;
-    
-    const newCurrent = Math.min(resource.max, Math.max(0, resource.current + delta));
-    const newResources = character.resources.map(r =>
-      r.id === resourceId ? { ...r, current: newCurrent } : r
-    );
-    updateCharacter({ ...character, resources: newResources });
+  const logHistory = (message: string, type: 'health' | 'sanity' | 'resource' | 'inventory' | 'exp' | 'other' = 'other') => {
+    const newEntry = {
+      id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      timestamp: Date.now(),
+      message,
+      type
+    };
 
-    if (settings.notifications && delta !== 0) {
-      const resource = character.resources.find(r => r.id === resourceId);
-      if (delta < 0) toast.error(`${resource?.name}: ${newCurrent}/${resource?.max}`);
-      else toast.success(`${resource?.name}: ${newCurrent}/${resource?.max}`);
-    }
+    setCharacter(prev => {
+      if (!prev) return null;
+      const history = Array.isArray(prev.history) ? prev.history : [];
+      const updatedHistory = [newEntry, ...history].slice(0, 10);
+      return { ...prev, history: updatedHistory };
+    });
+  };
+
+  const updateResourceCount = (resourceId: string, delta: number) => {
+    setCharacter(prev => {
+      if (!prev) return null;
+      const resource = prev.resources.find(r => r.id === resourceId);
+      if (!resource) return prev;
+      
+      const currentVal = isNaN(Number(resource.current)) ? 0 : Number(resource.current);
+      const maxVal = isNaN(Number(resource.max)) ? 0 : Number(resource.max);
+      
+      const newCurrent = Math.min(maxVal, Math.max(0, currentVal + delta));
+      const newResources = prev.resources.map(r =>
+        r.id === resourceId ? { ...r, current: newCurrent } : r
+      );
+      
+      if (delta !== 0) {
+        const message = delta < 0 
+          ? `Потрачен ресурс: ${resource.name} (${newCurrent}/${maxVal})`
+          : `Восстановлен ресурс: ${resource.name} (${newCurrent}/${maxVal})`;
+        
+        setTimeout(() => logHistory(message, 'resource'), 0);
+      }
+
+      if (settings.notifications && delta !== 0) {
+        if (delta < 0) toast.error(`${resource.name}: ${newCurrent}/${maxVal}`);
+        else toast.success(`${resource.name}: ${newCurrent}/${maxVal}`);
+      }
+
+      return { ...prev, resources: newResources };
+    });
   };
 
   const loadCharacter = async (characterId: string) => {
@@ -344,7 +278,6 @@ export const CharacterProvider: React.FC<{ children: ReactNode }> = ({ children 
         localStorage.setItem(getCharacterStorageKey(id), JSON.stringify(normalized));
       }
       
-      // Добавляем в список
       const preview: CharacterPreview = {
         id,
         name: normalized.name,
@@ -356,8 +289,11 @@ export const CharacterProvider: React.FC<{ children: ReactNode }> = ({ children 
         avatar: normalized.avatar,
       };
       
-      const updatedList = [...charactersList, preview];
-      saveCharactersList(updatedList);
+      setCharactersList(prev => {
+        const newList = [...prev, preview];
+        localStorage.setItem(CHARACTERS_LIST_KEY, JSON.stringify(newList));
+        return newList;
+      });
       
       setCharacter(normalized);
       return id;
@@ -373,15 +309,15 @@ export const CharacterProvider: React.FC<{ children: ReactNode }> = ({ children 
         const filePath = `${settings.storagePath}/${characterId}.json`;
         await (window as any).electronAPI.deleteCharacter(filePath);
       } else {
-        // Удаляем из localStorage
         localStorage.removeItem(getCharacterStorageKey(characterId));
       }
       
-      // Удаляем из списка
-      const updatedList = charactersList.filter(c => c.id !== characterId);
-      saveCharactersList(updatedList);
+      setCharactersList(prev => {
+        const newList = prev.filter(c => c.id !== characterId);
+        localStorage.setItem(CHARACTERS_LIST_KEY, JSON.stringify(newList));
+        return newList;
+      });
       
-      // Если удаляемый персонаж был загружен, очищаем
       if (character?.id === characterId) {
         setCharacter(null);
       }
@@ -399,19 +335,13 @@ export const CharacterProvider: React.FC<{ children: ReactNode }> = ({ children 
   };
 
   const exportToJSON = (characterId?: string) => {
-    const charToExport = characterId 
-      ? (() => {
-          try {
-            const saved = localStorage.getItem(getCharacterStorageKey(characterId));
-            return saved ? JSON.parse(saved) : null;
-          } catch {
-            return null;
-          }
-        })()
-      : character;
+    const id = characterId || character?.id;
+    if (!id) return;
+
+    const saved = localStorage.getItem(getCharacterStorageKey(id));
+    if (!saved) return;
     
-    if (!charToExport) return;
-    
+    const charToExport = JSON.parse(saved);
     const dataStr = JSON.stringify(charToExport, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
@@ -430,7 +360,6 @@ export const CharacterProvider: React.FC<{ children: ReactNode }> = ({ children 
           const content = e.target?.result as string;
           const parsed = JSON.parse(content);
           
-          // Validate basic structure
           if (!parsed || typeof parsed !== 'object' || !parsed.name || !parsed.attributes) {
             reject(new Error('Invalid character data'));
             return;
@@ -440,10 +369,8 @@ export const CharacterProvider: React.FC<{ children: ReactNode }> = ({ children 
           const id = normalized.id || `char_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
           const characterWithId = { ...normalized, id };
           
-          // Сохраняем персонажа
           localStorage.setItem(getCharacterStorageKey(id), JSON.stringify(characterWithId));
           
-          // Добавляем в список
           const preview: CharacterPreview = {
             id,
             name: characterWithId.name,
@@ -455,15 +382,18 @@ export const CharacterProvider: React.FC<{ children: ReactNode }> = ({ children 
             avatar: characterWithId.avatar,
           };
           
-          const updatedList = [...charactersList.filter(c => c.id !== id), preview];
-          saveCharactersList(updatedList);
+          setCharactersList(prev => {
+            const newList = [...prev.filter(c => c.id !== id), preview];
+            localStorage.setItem(CHARACTERS_LIST_KEY, JSON.stringify(newList));
+            return newList;
+          });
           
-        setCharacter(characterWithId);
-        if (settings.notifications) {
-          toast.success(`Персонаж ${characterWithId.name} импортирован`);
-        }
-        resolve(id);
-      } catch (error) {
+          setCharacter(characterWithId);
+          if (settings.notifications) {
+            toast.success(`Персонаж ${characterWithId.name} импортирован`);
+          }
+          resolve(id);
+        } catch (error) {
           reject(error);
         }
       };
@@ -471,6 +401,133 @@ export const CharacterProvider: React.FC<{ children: ReactNode }> = ({ children 
       reader.readAsText(file);
     });
   };
+
+  const loadCharactersList = async () => {
+    try {
+      if (settings.storagePath && (window as any).electronAPI) {
+        const characters = await (window as any).electronAPI.loadCharacters(settings.storagePath);
+        const previews: CharacterPreview[] = characters.map((c: Character) => ({
+          id: c.id,
+          name: c.name,
+          class: c.class,
+          subclass: c.subclass,
+          level: c.level,
+          currentHP: c.currentHP,
+          maxHP: c.maxHP,
+          avatar: c.avatar,
+        }));
+        setCharactersList(previews);
+        setIsLoaded(true);
+        return;
+      }
+
+      const saved = localStorage.getItem(CHARACTERS_LIST_KEY);
+      let list = [];
+      if (saved) {
+        list = JSON.parse(saved);
+        if (!Array.isArray(list)) list = [];
+      }
+
+      // Recovery logic if list is empty
+      if (list.length === 0) {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key?.startsWith('trpg_character_')) {
+            try {
+              const charData = JSON.parse(localStorage.getItem(key)!);
+              if (charData && charData.id && charData.name) {
+                list.push({
+                  id: charData.id,
+                  name: charData.name,
+                  class: charData.class,
+                  subclass: charData.subclass,
+                  level: charData.level,
+                  currentHP: charData.currentHP,
+                  maxHP: charData.maxHP,
+                  avatar: charData.avatar,
+                });
+              }
+            } catch (e) {}
+          }
+        }
+        if (list.length > 0) {
+          localStorage.setItem(CHARACTERS_LIST_KEY, JSON.stringify(list));
+        }
+      }
+
+      setCharactersList(list);
+      setIsLoaded(true);
+    } catch (e) {
+      console.error('Failed to load characters list:', e);
+      setCharactersList([]);
+      setIsLoaded(true);
+    }
+  };
+
+  const migrateOldData = () => {
+    try {
+      const oldCharacter = localStorage.getItem('trpg_character');
+      if (oldCharacter) {
+        try {
+          const parsed = JSON.parse(oldCharacter);
+          if (parsed && typeof parsed === 'object' && parsed.name && parsed.attributes) {
+            const id = `char_migrated_${Date.now()}`;
+            const normalized = normalizeCharacter({ ...parsed, id });
+            localStorage.setItem(getCharacterStorageKey(id), JSON.stringify(normalized));
+            
+            const preview: CharacterPreview = {
+              id,
+              name: normalized.name,
+              class: normalized.class,
+              subclass: normalized.subclass,
+              level: normalized.level,
+              currentHP: normalized.currentHP,
+              maxHP: normalized.maxHP,
+              avatar: normalized.avatar,
+            };
+            
+            setCharactersList(prev => {
+              const newList = [...prev, preview];
+              localStorage.setItem(CHARACTERS_LIST_KEY, JSON.stringify(newList));
+              return newList;
+            });
+            
+            localStorage.removeItem('trpg_character');
+          }
+        } catch (e) {
+          console.error('Failed to migrate old character:', e);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to migrate old data:', e);
+    }
+  };
+
+  useEffect(() => {
+    const initialize = async () => {
+      migrateOldData();
+      await loadCharactersList();
+    };
+    initialize();
+
+    const handleSettingsUpdate = (e: any) => {
+      const s = e.detail;
+      setSettings({
+        storagePath: s.storagePath,
+        autoSave: s.autoSave,
+        compactCards: s.compactCards,
+        notifications: s.showNotifications,
+      });
+    };
+    window.addEventListener('app-settings-updated', handleSettingsUpdate);
+    return () => window.removeEventListener('app-settings-updated', handleSettingsUpdate);
+  }, []);
+
+  useEffect(() => {
+    if (isLoaded) {
+      loadCharactersList();
+    }
+  }, [settings.storagePath]);
 
   return (
     <CharacterContext.Provider
@@ -481,6 +538,7 @@ export const CharacterProvider: React.FC<{ children: ReactNode }> = ({ children 
         setActiveTab,
         updateCharacter,
         updateResourceCount,
+        logHistory,
         loadCharacter,
         createCharacter,
         deleteCharacter,

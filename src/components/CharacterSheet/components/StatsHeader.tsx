@@ -50,7 +50,7 @@ export const StatsHeader: React.FC<StatsHeaderProps> = ({
         <div>
           <div className="text-xs text-gray-400 uppercase font-semibold">Здоровье</div>
           <div className="text-2xl font-bold flex items-baseline gap-1">
-            <span className={isDying ? 'text-red-500' : ''}>{character.currentHP}</span>
+            <span className={isDying ? 'text-red-500' : ''}>{isNaN(character.currentHP) ? 0 : character.currentHP}</span>
             {character.tempHP > 0 && <span className="text-sm text-blue-400">+{character.tempHP}</span>}
             <span className="text-sm text-gray-500 font-normal">/ {getTotalMaxHP()}</span>
           </div>
@@ -58,7 +58,7 @@ export const StatsHeader: React.FC<StatsHeaderProps> = ({
         <div className="w-full h-1.5 bg-dark-bg rounded-full overflow-hidden border border-red-500/10">
           <div 
             className={`h-full bg-gradient-to-r from-red-500 to-red-600 transition-all ${isDying ? 'animate-pulse' : ''}`}
-            style={{ width: `${Math.min((character.currentHP / getTotalMaxHP()) * 100, 100)}%` }}
+            style={{ width: `${Math.min(((isNaN(character.currentHP) ? 0 : character.currentHP) / getTotalMaxHP()) * 100, 100)}%` }}
           />
         </div>
       </motion.button>
@@ -81,14 +81,14 @@ export const StatsHeader: React.FC<StatsHeaderProps> = ({
         <div>
           <div className="text-xs text-gray-400 uppercase font-semibold">Рассудок</div>
           <div className="text-2xl font-bold flex items-baseline gap-1">
-            <span className={isInsane ? 'text-red-500' : ''}>{character.sanity}</span>
+            <span className={isInsane ? 'text-red-500' : ''}>{isNaN(character.sanity) ? 0 : character.sanity}</span>
             <span className="text-sm text-gray-500 font-normal">/ {getMaxSanity()}</span>
           </div>
         </div>
         <div className="w-full h-1.5 bg-dark-bg rounded-full overflow-hidden border border-purple-500/10">
           <div 
             className={`h-full transition-all ${isInsane ? 'bg-red-600' : 'bg-gradient-to-r from-purple-500 to-blue-500'}`}
-            style={{ width: `${Math.min((character.sanity / getMaxSanity()) * 100, 100)}%` }}
+            style={{ width: `${Math.min(((isNaN(character.sanity) ? 0 : character.sanity) / getMaxSanity()) * 100, 100)}%` }}
           />
         </div>
       </motion.button>

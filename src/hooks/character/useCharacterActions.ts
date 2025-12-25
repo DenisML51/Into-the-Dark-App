@@ -2,7 +2,7 @@ import { Character, Attack, Ability, Trait, Resource } from '../../types';
 
 export const useCharacterActions = (
   character: Character | null,
-  updateCharacter: (char: Character) => void
+  updateCharacter: (char: Character, silent?: boolean) => void
 ) => {
   if (!character) return null;
 
