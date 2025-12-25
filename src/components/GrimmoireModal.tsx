@@ -11,6 +11,7 @@ interface GrimmoireModalProps {
   onSaveSpell: (spell: Spell) => void;
   onDeleteSpell: (id: string) => void;
   onUpdateCharacter: (char: Character) => void;
+  onOpenSpellModal: (spell?: Spell) => void;
 }
 
 export const GrimmoireModal: React.FC<GrimmoireModalProps> = ({
@@ -20,6 +21,7 @@ export const GrimmoireModal: React.FC<GrimmoireModalProps> = ({
   onSaveSpell,
   onDeleteSpell,
   onUpdateCharacter,
+  onOpenSpellModal,
 }) => {
   const [search, setSearch] = useState('');
   const [activeLevel, setActiveLevel] = useState<number | 'all'>(-1);
@@ -103,6 +105,13 @@ export const GrimmoireModal: React.FC<GrimmoireModalProps> = ({
               </div>
               
               <div className="flex items-center gap-3">
+                <button
+                  onClick={() => onOpenSpellModal()}
+                  className="bg-white/5 hover:bg-white/10 text-white px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-2 border border-white/10 transition-all active:scale-95 shadow-lg"
+                >
+                  <Plus size={16} />
+                  Новое
+                </button>
                 <button
                   onClick={() => setShowInitiativeSettings(!showSettings)}
                   className={`p-2.5 rounded-xl transition-all border ${showSettings ? 'bg-purple-500/20 border-purple-500/50 text-purple-400' : 'bg-white/5 border-white/5 text-gray-500 hover:text-white'}`}

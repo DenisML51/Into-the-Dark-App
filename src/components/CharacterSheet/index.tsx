@@ -167,7 +167,6 @@ export const CharacterSheet: React.FC = () => {
                 {activeTab === 'spells' && (
                   <SpellsTab 
                     character={character}
-                    openSpellModal={logic.openSpellModal}
                     openSpellView={logic.openSpellView}
                     toggleSpellPrepared={logic.toggleSpellPrepared}
                     updateResourceCount={logic.updateResourceCount}

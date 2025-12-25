@@ -116,7 +116,7 @@ export const SpellModal: React.FC<SpellModalProps> = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/70 z-[60] flex items-center justify-center p-4"
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}

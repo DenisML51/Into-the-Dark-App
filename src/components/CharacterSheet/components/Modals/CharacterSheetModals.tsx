@@ -445,6 +445,7 @@ export const CharacterSheetModals: React.FC<CharacterSheetModalsProps> = (props)
         onSaveSpell={saveSpell}
         onDeleteSpell={deleteSpell}
         onUpdateCharacter={updateCharacter}
+        onOpenSpellModal={openSpellModal}
       />
     </>
   );

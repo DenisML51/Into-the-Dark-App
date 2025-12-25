@@ -80,24 +80,16 @@ export const HealthTab: React.FC<HealthTabProps> = ({
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-4">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <h3 className="text-xl font-bold flex items-center gap-2">
-              <Activity className="w-5 h-5 text-blue-400" />
-              Состояние тела
-            </h3>
-            
-            {/* Inline Resistances without Box */}
-            <div className="flex items-center gap-1">
-              {character.resistances?.map(renderResistanceIcon)}
-            </div>
+        <div>
+          <h3 className="text-xl font-bold flex items-center gap-2 mb-4">
+            <Activity className="w-5 h-5 text-blue-400" />
+            Состояние тела
+          </h3>
+          
+          {/* Resistances wrap under title */}
+          <div className="flex flex-wrap gap-2">
+            {character.resistances?.map(renderResistanceIcon)}
           </div>
-          <button
-            onClick={openACModal}
-            className="text-[10px] font-black uppercase bg-dark-card/50 border border-dark-border px-3 py-1.5 rounded-xl hover:border-blue-500/50 transition-all text-gray-400 hover:text-blue-400"
-          >
-            Настроить защиту
-          </button>
         </div>
       </div>
       

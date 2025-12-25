@@ -8,7 +8,6 @@ import { getLucideIcon } from '../../../../utils/iconUtils';
 
 interface SpellsTabProps {
   character: Character;
-  openSpellModal: (spell?: Spell) => void;
   openSpellView: (spell: Spell) => void;
   toggleSpellPrepared: (spellId: string) => void;
   updateResourceCount: (resourceId: string, delta: number) => void;
@@ -18,7 +17,6 @@ interface SpellsTabProps {
 
 export const SpellsTab: React.FC<SpellsTabProps> = ({
   character,
-  openSpellModal,
   openSpellView,
   toggleSpellPrepared,
   updateResourceCount,
@@ -64,14 +62,6 @@ export const SpellsTab: React.FC<SpellsTabProps> = ({
               className="w-full bg-dark-card/30 border border-dark-border rounded-xl pl-11 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
             />
           </div>
-          
-          <button
-            onClick={() => openSpellModal()}
-            className="bg-white/5 hover:bg-white/10 text-white px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-2 border border-white/10 transition-all active:scale-95"
-          >
-            <Plus size={18} />
-            Новое заклинание
-          </button>
 
           <button
             onClick={openGrimmoire}
