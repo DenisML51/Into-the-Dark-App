@@ -1,5 +1,5 @@
 import React from 'react';
-import { Zap, Flame, Snowflake, Droplets, Brain, Skull, Sun, Target, Swords, Scissors, Gavel, Activity } from 'lucide-react';
+import { Zap, Flame, Snowflake, Droplets, Brain, Skull, Sun, Target, Swords, Scissors, Gavel, Activity, Sword } from 'lucide-react';
 
 export const DAMAGE_TYPE_COLORS: { [key: string]: string } = {
   'Физический': '#94a3b8',
@@ -29,7 +29,7 @@ export const getDamageTypeIcon = (type: string, size: number = 16) => {
     case 'Лучистый': return <Sun size={size} />;
     case 'Силовой': return <Activity size={size} />;
     case 'Колющий': return <Target size={size} />;
-    case 'Рубящий': return <Scissors size={size} />;
+    case 'Рубящий': return <Sword size={size} className="rotate-45" />;
     case 'Дробящий': return <Gavel size={size} />;
     default: return <Swords size={size} />;
   }

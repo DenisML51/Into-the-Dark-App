@@ -47,14 +47,18 @@ const tabs: { id: TabType; label: string; icon: any }[] = [
 export const Navbar: React.FC = () => {
   const { character, activeTab, setActiveTab, goToCharacterList, exportToJSON, updateResourceCount } = useCharacter();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+  const [isXl, setIsXl] = useState(window.innerWidth < 1280);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
-      const mobile = window.innerWidth < 1024;
+      const width = window.innerWidth;
+      const mobile = width < 1024;
+      const xl = width < 1280;
       setIsMobile(mobile);
+      setIsXl(xl);
       if (!mobile && activeTab === 'stats') {
         setActiveTab('personality');
       }
@@ -245,8 +249,8 @@ export const Navbar: React.FC = () => {
 
                     <div className="h-[1px] bg-[#333] mx-2 mb-1" />
 
-                    {/* Resources in menu on mobile */}
-                    {isMobile && resourcesWithValues.length > 0 && (
+                    {/* Resources in menu when hidden from navbar */}
+                    {isXl && resourcesWithValues.length > 0 && (
                       <>
                         <div className="px-4 py-1.5 text-[10px] text-gray-500 font-bold uppercase tracking-widest">Ресурсы</div>
                         {resourcesWithValues.map(resource => (
@@ -254,6 +258,12 @@ export const Navbar: React.FC = () => {
                             key={resource.id}
                             onClick={() => {
                               updateResourceCount(resource.id, -1);
+                            }}
+                            onContextMenu={(e) => {
+                              e.preventDefault();
+                              window.dispatchEvent(new CustomEvent('open-character-modal', { 
+                                detail: { type: 'resource', data: resource } 
+                              }));
                               setIsMenuOpen(false);
                             }}
                             className="w-full flex items-center justify-between px-4 py-2 hover:bg-[#2a2a2a] text-gray-300 transition-colors text-sm group"
@@ -262,9 +272,54 @@ export const Navbar: React.FC = () => {
                               {getLucideIcon(resource.iconName, { className: "w-4 h-4 text-blue-400 group-hover:text-blue-300" })}
                               <span className="group-hover:text-white">{resource.name}</span>
                             </div>
-                            <span className="text-xs font-bold text-blue-400">{resource.current}/{resource.max}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-gray-500 opacity-0 lg:group-hover:opacity-100 transition-opacity">ЛКМ: -1</span>
+                              <span className="text-xs font-bold text-blue-400">{resource.current}/{resource.max}</span>
+                            </div>
                           </button>
                         ))}
+                        <div className="h-[1px] bg-[#333] mx-2 my-1" />
+                      </>
+                    )}
+
+                    {/* Ammo & Currency in menu when hidden from navbar */}
+                    {isMobile && (
+                      <>
+                        <div className="px-4 py-1.5 text-[10px] text-gray-500 font-bold uppercase tracking-widest">Инвентарь</div>
+                        {totalAmmo > 0 && (
+                          <button
+                            onClick={() => {
+                              window.dispatchEvent(new CustomEvent('open-character-modal', { 
+                                detail: { type: 'ammunition' } 
+                              }));
+                              setIsMenuOpen(false);
+                            }}
+                            className="w-full flex items-center justify-between px-4 py-2 hover:bg-[#2a2a2a] text-gray-300 transition-colors text-sm group"
+                          >
+                            <div className="flex items-center gap-3">
+                              <Target className="w-4 h-4 text-orange-400 group-hover:text-orange-300" />
+                              <span className="group-hover:text-white">Боеприпасы</span>
+                            </div>
+                            <span className="text-xs font-bold text-orange-400">{totalAmmo}</span>
+                          </button>
+                        )}
+                        <button
+                          onClick={() => {
+                            window.dispatchEvent(new CustomEvent('open-character-modal', { 
+                              detail: { type: 'currency' } 
+                            }));
+                            setIsMenuOpen(false);
+                          }}
+                          className="w-full flex items-center justify-between px-4 py-2 hover:bg-[#2a2a2a] text-gray-300 transition-colors text-sm group"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Coins className="w-4 h-4 text-yellow-500 group-hover:text-yellow-400" />
+                            <span className="group-hover:text-white">Валюта</span>
+                          </div>
+                          <span className="text-xs font-bold text-yellow-500">
+                            {Math.floor(character.currency.gold + character.currency.silver / 10 + character.currency.copper / 100)}
+                          </span>
+                        </button>
                         <div className="h-[1px] bg-[#333] mx-2 my-1" />
                       </>
                     )}
