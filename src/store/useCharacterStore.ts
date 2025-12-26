@@ -252,7 +252,11 @@ export const useCharacterStore = create<CharacterState>((set, get) => ({
 
       if (char) {
         const normalized = normalizeCharacter(char);
-        set({ character: normalized });
+        set({ 
+          character: normalized,
+          activeTab: 'personality',
+          viewMode: 'tabs'
+        });
         if (settings.notifications) {
           toast.success(`Загружен: ${normalized.name}`);
         }
@@ -270,7 +274,12 @@ export const useCharacterStore = create<CharacterState>((set, get) => ({
     
     saveToStorage(normalized, settings, true);
     const newList = updateListInStorage(normalized, charactersList);
-    set({ character: normalized, charactersList: newList });
+    set({ 
+      character: normalized, 
+      charactersList: newList,
+      activeTab: 'personality',
+      viewMode: 'tabs'
+    });
     
     return id;
   },
@@ -444,7 +453,12 @@ export const useCharacterStore = create<CharacterState>((set, get) => ({
           
           const newList = updateListInStorage(characterWithId, charactersList);
           
-          set({ character: characterWithId, charactersList: newList });
+          set({ 
+            character: characterWithId, 
+            charactersList: newList,
+            activeTab: 'personality',
+            viewMode: 'tabs'
+          });
           if (settings.notifications) {
             toast.success(`Персонаж ${characterWithId.name} импортирован`);
           }

@@ -45,7 +45,7 @@ const AppContent: React.FC = () => {
       </div>
       
       {/* Navbar */}
-      <Navbar />
+      {character && <Navbar key={character.id} />}
       
       {/* Main Content */}
       <main className={`relative z-10 ${character ? 'pt-24' : ''}`}>
