@@ -93,15 +93,8 @@ export const Navbar: React.FC = () => {
         {/* Left: Name */}
         <div className="flex items-center gap-3 min-w-0">
           <button
-            onClick={goToCharacterList}
-            className="p-2 hover:bg-dark-hover rounded-xl transition-colors text-gray-400 hover:text-white"
-            title="К списку персонажей"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <button
             onClick={() => setViewMode(viewMode === 'tabs' ? 'hotbar' : 'tabs')}
-            className="truncate text-left group"
+            className="truncate text-left group border border-transparent hover:border-white/10 rounded-xl px-3 py-1.5 -mx-3 transition-all"
             title={viewMode === 'tabs' ? 'Переключить в боевой режим' : 'Вернуться к вкладкам'}
           >
             <h1 className="text-lg font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent truncate group-hover:from-blue-300 group-hover:to-purple-400 transition-all">
