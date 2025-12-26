@@ -1,7 +1,8 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { InventoryItem } from '../types';
-import { Shield, Sword, Box, Zap, Weight, DollarSign } from 'lucide-react';
+import { Shield, Sword, Box, Zap, Weight, DollarSign, Crosshair, Disc } from 'lucide-react';
+import { getLucideIcon } from '../utils/iconUtils';
 import { MarkdownText } from './MarkdownText';
 
 interface ItemViewModalProps {
@@ -18,11 +19,16 @@ export const ItemViewModal: React.FC<ItemViewModalProps> = ({
   onEdit,
 }) => {
   const getIcon = () => {
+    if (item.iconName) {
+      return (props: any) => getLucideIcon(item.iconName!, { ...props, style: { ...props.style, color: item.color || props.style?.color } });
+    }
     switch (item.type) {
-      case 'armor': return Shield;
-      case 'weapon': return Sword;
-      case 'ammunition': return Zap;
-      default: return Box;
+      case 'armor': return (props: any) => <Shield {...props} style={{ ...props.style, color: item.color || props.style?.color }} />;
+      case 'weapon': 
+        const WeaponIcon = item.weaponClass === 'ranged' ? Crosshair : Sword;
+        return (props: any) => <WeaponIcon {...props} style={{ ...props.style, color: item.color || props.style?.color }} />;
+      case 'ammunition': return (props: any) => <Disc {...props} style={{ ...props.style, color: item.color || props.style?.color }} />;
+      default: return (props: any) => <Box {...props} style={{ ...props.style, color: item.color || props.style?.color }} />;
     }
   };
 
@@ -58,8 +64,11 @@ export const ItemViewModal: React.FC<ItemViewModalProps> = ({
             {/* Header */}
             <div className="flex items-start justify-between mb-6">
               <div className="flex items-center gap-3">
-                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center`}>
-                  <Icon className="w-6 h-6 text-white" />
+                <div 
+                  className={`w-12 h-12 rounded-xl flex items-center justify-center ${!item.color ? `bg-gradient-to-br ${gradient}` : ''}`}
+                  style={item.color ? { backgroundColor: `${item.color}20`, border: `1px solid ${item.color}30` } : {}}
+                >
+                  <Icon className="w-6 h-6 text-white" style={item.color ? { color: item.color } : {}} />
                 </div>
                 <div>
                   <h2 className="text-2xl font-bold">{item.name}</h2>

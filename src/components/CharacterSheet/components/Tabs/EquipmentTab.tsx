@@ -1,6 +1,6 @@
 import React from 'react';
 import { Backpack, Zap, Sword, Shield } from 'lucide-react';
-import { Character } from '../../../../types';
+import { Character, InventoryItem } from '../../../../types';
 import { MarkdownEditor } from '../../../MarkdownEditor';
 import { MarkdownText } from '../../../MarkdownText';
 
@@ -10,7 +10,7 @@ interface EquipmentTabProps {
   openItemView: (item: any) => void;
   unequipItem: (itemId: string) => void;
   updateEquipmentNotes: (notes: string) => void;
-  getItemIcon: (type: string) => any;
+  getItemIcon: (item: InventoryItem) => any;
   getItemTypeLabel: (type: string) => string;
 }
 
@@ -39,7 +39,7 @@ export const EquipmentTab: React.FC<EquipmentTabProps> = ({
       {character.inventory && character.inventory.filter(i => i.equipped).length > 0 ? (
         <div className="space-y-3">
           {character.inventory.filter(i => i.equipped).map((item) => {
-            const ItemIcon = getItemIcon(item.type);
+            const ItemIcon = getItemIcon(item);
             const isWeapon = item.type === 'weapon';
             const isArmor = item.type === 'armor';
 
@@ -50,8 +50,11 @@ export const EquipmentTab: React.FC<EquipmentTabProps> = ({
                 className="group relative bg-dark-card/50 rounded-xl border-2 border-blue-500/30 bg-blue-500/5 transition-all cursor-pointer overflow-hidden p-4 hover:border-blue-500/50"
               >
                 <div className="flex items-center gap-4">
-                  <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">
-                    <ItemIcon className="w-5 h-5 text-blue-400" />
+                  <div 
+                    className="flex-shrink-0 w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform"
+                    style={item.color ? { backgroundColor: `${item.color}20`, borderColor: `${item.color}30` } : {}}
+                  >
+                    <ItemIcon className={`w-5 h-5 ${item.color ? '' : 'text-blue-400'}`} />
                   </div>
                   
                   <div className="flex-1 min-w-0">

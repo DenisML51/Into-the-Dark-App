@@ -47,8 +47,18 @@ export const LUCIDE_PICKER_ICONS = [
   'Heart', 'Brain', 'Eye', 'Droplet', 'Target', 'Activity', 'Circle', 
   'Square', 'Triangle', 'Diamond', 'Hexagon', 'Feather', 'Wind', 'CloudRain', 
   'Sun', 'Moon', 'CloudLightning', 'Snowflake', 'Skull', 'Ghost', 'Wand2', 
-  'Gem', 'Crown', 'Bookmark', 'FlaskConical', 'Scroll', 'Component', 
-  'Dna', 'Magnet', 'Microscope', 'Palette'
+  'Gem', 'Crown', 'Bookmark', 'FlaskConical', 'FlaskRound', 'Scroll', 'Component', 
+  'Dna', 'Magnet', 'Microscope', 'Palette', 'Backpack', 'Coins', 'Hammer', 
+  'Key', 'Map', 'Music', 'Search', 'Settings', 'Tool', 'Trash2', 'User', 
+  'Wand', 'Anchor', 'Beer', 'Bell', 'Book', 'Box', 'Briefcase', 'Camera', 
+  'Clock', 'Coffee', 'Compass', 'CupSoda', 'Dice5', 'Egg', 'Fish', 'GlassWater', 
+  'GripHorizontal', 'Home', 'Image', 'Info', 'Leaf', 'Link', 'Lock', 'Mail', 
+  'MapPin', 'Menu', 'MessageSquare', 'Mic', 'MoonStar', 'Mountain', 'Navigation', 
+  'Package', 'Paperclip', 'Phone', 'Play', 'Power', 'Printer', 'Puzzle', 'Radio', 
+  'RefreshCw', 'Scissors', 'Share2', 'ShoppingBag', 'ShoppingCart', 'Smile', 
+  'Speaker', 'SunMedium', 'Table', 'Tag', 'Terminal', 'ThumbsUp', 'Ticket', 
+  'Timer', 'Truck', 'Tv', 'Umbrella', 'Unlock', 'Upload', 'Video', 'Volume2', 
+  'Watch', 'Wifi', 'Wine', 'X', 'ZapOff'
 ];
 
 /**

@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, X, Minus, Plus, Package } from 'lucide-react';
+import { Zap, X, Minus, Plus, Package, Disc } from 'lucide-react';
 import { InventoryItem } from '../types';
 
 interface AmmunitionModalProps {
@@ -37,7 +37,7 @@ export const AmmunitionModal: React.FC<AmmunitionModalProps> = ({
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-yellow-500 flex items-center justify-center shadow-lg shadow-orange-500/20">
-                  <Zap className="w-5 h-5 text-white" />
+                  <Disc className="w-5 h-5 text-white" />
                 </div>
                 <div>
                   <h2 className="text-xl font-bold">Боеприпасы</h2>
@@ -107,7 +107,7 @@ export const AmmunitionModal: React.FC<AmmunitionModalProps> = ({
               </div>
             ) : (
               <div className="text-center py-12 bg-dark-bg/30 rounded-2xl border border-dashed border-dark-border">
-                <Zap className="w-12 h-12 mx-auto mb-3 text-gray-600 opacity-50" />
+                <Disc className="w-12 h-12 mx-auto mb-3 text-gray-600 opacity-50" />
                 <p className="text-gray-400 font-medium">Боеприпасы не найдены</p>
                 <p className="text-xs text-gray-500 mt-1 max-w-[200px] mx-auto">
                   Добавьте патроны или стрелы в инвентаре, выбрав тип "Боеприпас"

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Sword, Box, Zap, X, Check, Info, Plus, Minus, Search, ChevronRight } from 'lucide-react';
+import { Shield, Sword, Box, Zap, X, Check, Info, Plus, Minus, Search, ChevronRight, Edit2, Crosshair, Disc } from 'lucide-react';
 import { InventoryItem, ItemType, WeaponClass } from '../types';
 import { MarkdownEditor } from './MarkdownEditor';
+import { IconPicker } from './IconPicker';
+import { getLucideIcon } from '../utils/iconUtils';
 
 interface ItemModalProps {
   isOpen: boolean;
@@ -26,7 +28,15 @@ export const ItemModal: React.FC<ItemModalProps> = ({
   const [cost, setCost] = useState(item?.cost || 0);
   const [quantity, setQuantity] = useState(item?.quantity || 1);
   const [itemClass, setItemClass] = useState(item?.itemClass || '');
+  const [iconName, setIconName] = useState(item?.iconName || '');
+  const [color, setColor] = useState(item?.color || '');
+  const [isIconPickerOpen, setIsIconPickerOpen] = useState(false);
   const [step, setStep] = useState<'type' | 'details'>(item ? 'details' : 'type');
+  
+  const colors = [
+    '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', 
+    '#ec4899', '#06b6d4', '#6366f1', '#14b8a6', '#f97316'
+  ];
   
   // Armor specific
   const [baseAC, setBaseAC] = useState(item?.baseAC || 10);
@@ -57,6 +67,8 @@ export const ItemModal: React.FC<ItemModalProps> = ({
       setCost(item?.cost || 0);
       setQuantity(item?.quantity || 1);
       setItemClass(item?.itemClass || '');
+      setIconName(item?.iconName || '');
+      setColor(item?.color || '');
       setBaseAC(item?.baseAC || 10);
       setDexModifier(item?.dexModifier ?? true);
       setMaxDexModifier(item?.maxDexModifier ?? null);
@@ -87,6 +99,8 @@ export const ItemModal: React.FC<ItemModalProps> = ({
       weight,
       cost,
       description,
+      iconName: iconName || undefined,
+      color: color || undefined,
     };
 
     // Add type-specific fields
@@ -115,8 +129,8 @@ export const ItemModal: React.FC<ItemModalProps> = ({
 
   const typeData: Record<ItemType, { icon: any, label: string, color: string, bg: string, border: string, text: string, shadow: string, desc: string }> = {
     armor: { icon: Shield, label: 'Броня', color: 'blue', bg: 'bg-blue-500/20', border: 'border-blue-500/30', text: 'text-blue-400', shadow: 'shadow-blue-500/10', desc: 'Защитные доспехи и щиты' },
-    weapon: { icon: Sword, label: 'Оружие', color: 'red', bg: 'bg-red-500/20', border: 'border-red-500/30', text: 'text-red-400', shadow: 'shadow-red-500/10', desc: 'Мечи, луки, огнестрел' },
-    ammunition: { icon: Zap, label: 'Боеприпас', color: 'orange', bg: 'bg-orange-500/20', border: 'border-orange-500/30', text: 'text-orange-400', shadow: 'shadow-orange-500/10', desc: 'Стрелы, патроны, болты' },
+    weapon: { icon: weaponClass === 'ranged' ? Crosshair : Sword, label: 'Оружие', color: 'red', bg: 'bg-red-500/20', border: 'border-red-500/30', text: 'text-red-400', shadow: 'shadow-red-500/10', desc: 'Мечи, луки, огнестрел' },
+    ammunition: { icon: Disc, label: 'Боеприпас', color: 'orange', bg: 'bg-orange-500/20', border: 'border-orange-500/30', text: 'text-orange-400', shadow: 'shadow-orange-500/10', desc: 'Стрелы, патроны, болты' },
     item: { icon: Box, label: 'Предмет', color: 'purple', bg: 'bg-purple-500/20', border: 'border-purple-500/30', text: 'text-purple-400', shadow: 'shadow-purple-500/10', desc: 'Зелья, еда, снаряжение' },
   };
 
@@ -143,8 +157,53 @@ export const ItemModal: React.FC<ItemModalProps> = ({
             {/* Header */}
             <div className="p-6 border-b border-dark-border flex items-center justify-between bg-dark-card/50 backdrop-blur-sm sticky top-0 z-20">
               <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl ${currentTypeData.bg} flex items-center justify-center border ${currentTypeData.border}`}>
-                  <currentTypeData.icon className={`w-5 h-5 ${currentTypeData.text}`} />
+                <div className="flex flex-col gap-2">
+                  <div className="relative">
+                    <button 
+                      onClick={() => step === 'details' && setIsIconPickerOpen(true)}
+                      className={`w-12 h-12 rounded-xl flex items-center justify-center border relative group/icon transition-all hover:scale-105 ${step === 'details' ? 'cursor-pointer' : 'cursor-default'}`}
+                      style={{ 
+                        backgroundColor: color ? `${color}20` : undefined,
+                        borderColor: color ? `${color}30` : undefined,
+                        color: color || undefined
+                      }}
+                      disabled={step !== 'details'}
+                    >
+                      {iconName ? (
+                        getLucideIcon(iconName, { className: "w-6 h-6", style: { color: color || undefined } })
+                      ) : (
+                        <currentTypeData.icon className="w-6 h-6" style={{ color: color || undefined }} />
+                      )}
+                      {step === 'details' && (
+                        <div className="absolute inset-0 bg-black/40 rounded-xl opacity-0 group-hover/icon:opacity-100 flex items-center justify-center transition-opacity">
+                          <Edit2 className="w-4 h-4 text-white" />
+                        </div>
+                      )}
+                    </button>
+
+                    {step === 'details' && (
+                      <IconPicker
+                        isOpen={isIconPickerOpen}
+                        onClose={() => setIsIconPickerOpen(false)}
+                        currentIcon={iconName}
+                        onSelect={setIconName}
+                      />
+                    )}
+                  </div>
+                  
+                  {step === 'details' && (
+                    <div className="flex gap-1 justify-center">
+                      {colors.map(c => (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() => setColor(c === color ? '' : c)}
+                          className={`w-3 h-3 rounded-full transition-all ${color === c ? 'scale-125 ring-2 ring-white/50' : 'opacity-50 hover:opacity-100'}`}
+                          style={{ backgroundColor: c }}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <h2 className="text-xl font-bold">{item ? 'Редактировать предмет' : 'Добавить предмет'}</h2>

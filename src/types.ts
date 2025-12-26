@@ -57,6 +57,8 @@ export interface InventoryItem {
   damage?: string; // e.g., "1d6+2"
   damageType?: string; // e.g., "Колющий"
   ammunitionType?: string; // e.g., "Стрелы"
+  iconName?: string;
+  color?: string;
 }
 
 export type ActionType = 'action' | 'bonus' | 'reaction';

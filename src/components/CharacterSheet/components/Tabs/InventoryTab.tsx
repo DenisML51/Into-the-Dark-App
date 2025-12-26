@@ -15,7 +15,7 @@ interface InventoryTabProps {
   equipItem: (itemId: string) => void;
   unequipItem: (itemId: string) => void;
   updateInventoryNotes: (notes: string) => void;
-  getItemIcon: (type: string) => any;
+  getItemIcon: (item: InventoryItem) => any;
   getItemTypeLabel: (type: string) => string;
 }
 
@@ -72,7 +72,7 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
           {character.inventory.filter(item => 
             inventorySubTab === 'all' || item.type === inventorySubTab
           ).map((item) => {
-            const ItemIcon = getItemIcon(item.type);
+            const ItemIcon = getItemIcon(item);
             const isWeapon = item.type === 'weapon';
             const isArmor = item.type === 'armor';
             const isConsumable = item.type === 'item' || item.type === 'ammunition';
@@ -86,10 +86,13 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
                 }`}
               >
                 <div className="flex items-center gap-4">
-                  <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center border shadow-inner group-hover:scale-110 transition-transform ${
-                    item.equipped ? 'bg-blue-500/20 border-blue-500/30' : 'bg-dark-bg border-dark-border'
-                  }`}>
-                    <ItemIcon className={`w-5 h-5 ${item.equipped ? 'text-blue-400' : 'text-gray-400'}`} />
+                  <div 
+                    className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center border shadow-inner group-hover:scale-110 transition-transform ${
+                      item.equipped ? 'bg-blue-500/20 border-blue-500/30' : 'bg-dark-bg border-dark-border'
+                    }`}
+                    style={item.color && !item.equipped ? { backgroundColor: `${item.color}10`, borderColor: `${item.color}20` } : {}}
+                  >
+                    <ItemIcon className={`w-5 h-5 ${item.equipped ? 'text-blue-400' : (item.color ? '' : 'text-gray-400')}`} />
                   </div>
                   
                   <div className="flex-1 min-w-0">

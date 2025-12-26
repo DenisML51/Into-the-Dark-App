@@ -87,7 +87,7 @@ export const HotbarPanels: React.FC<HotbarPanelsProps> = ({
                       (action as any).hotbarType === 'spell' ? ((action as any).iconName || 'Wand2') : 
                       (action as any).hotbarType === 'attack' ? ((action as any).iconName || ((action as any).weaponId ? 'Sword' : 'Zap')) :
                       (action as any).hotbarType === 'ability' ? ((action as any).iconName || 'Zap') :
-                      ((action as any).type === 'weapon' ? 'Sword' : (action as any).type === 'armor' ? 'Shield' : 'Box'),
+                      ((action as any).iconName || ((action as any).type === 'weapon' ? 'Sword' : (action as any).type === 'armor' ? 'Shield' : 'Box')),
                       { size: 24, style: { color: (action as any).color || cat.color } }
                     )}
                     {(action as any).actionType && (

@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Shield, Sword, Box, Zap } from 'lucide-react';
+import { Shield, Sword, Box, Zap, Crosshair, Disc } from 'lucide-react';
+import { InventoryItem } from '../../types';
+import { getLucideIcon } from '../../utils/iconUtils';
 import { useCharacterSheetLogic } from './CharacterSheetLogic';
 import { StatsHeader } from './components/StatsHeader';
 import { SecondaryStatsStrip } from './components/SecondaryStatsStrip';
@@ -47,12 +49,17 @@ export const CharacterSheet: React.FC = () => {
     }
   }, [viewMode]);
 
-  const getItemIcon = (type: string) => {
-    switch (type) {
-      case 'armor': return Shield;
-      case 'weapon': return Sword;
-      case 'ammunition': return Zap;
-      default: return Box;
+  const getItemIcon = (item: InventoryItem) => {
+    if (item.iconName) {
+      return (props: any) => getLucideIcon(item.iconName!, { ...props, style: { ...props.style, color: item.color || props.style?.color } });
+    }
+    switch (item.type) {
+      case 'armor': return (props: any) => <Shield {...props} style={{ ...props.style, color: item.color || props.style?.color }} />;
+      case 'weapon': 
+        const WeaponIcon = item.weaponClass === 'ranged' ? Crosshair : Sword;
+        return (props: any) => <WeaponIcon {...props} style={{ ...props.style, color: item.color || props.style?.color }} />;
+      case 'ammunition': return (props: any) => <Disc {...props} style={{ ...props.style, color: item.color || props.style?.color }} />;
+      default: return (props: any) => <Box {...props} style={{ ...props.style, color: item.color || props.style?.color }} />;
     }
   };
 
