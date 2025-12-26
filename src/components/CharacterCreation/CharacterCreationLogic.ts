@@ -5,12 +5,18 @@ import {
   POINT_BUY_COSTS, getProficiencyBonus, calculateMaxSanity, 
   getDefaultLimbs, Race, Class, Subrace, Skill
 } from '../../types';
-import { useCharacter } from '../../context/CharacterContext';
+import { 
+  Character, RACES, CLASSES, ATTRIBUTES_LIST, SKILLS_LIST, 
+  INITIAL_POINTS, ATTRIBUTE_START, ATTRIBUTE_MIN, ATTRIBUTE_MAX, 
+  POINT_BUY_COSTS, getProficiencyBonus, calculateMaxSanity, 
+  getDefaultLimbs, Race, Class, Subrace, Skill
+} from '../../types';
+import { useCharacterStore } from '../../store/useCharacterStore';
 
 export type Step = 'basic' | 'attributes' | 'skills';
 
 export const useCharacterCreationLogic = (onComplete?: () => void) => {
-  const { character, createCharacter } = useCharacter();
+  const { character, createCharacter } = useCharacterStore();
   
   const [currentStep, setCurrentStep] = useState<Step>('basic');
   const [name, setName] = useState(character?.name || '');

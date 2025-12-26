@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { toast } from 'react-hot-toast';
-import { useCharacter } from '../../context/CharacterContext';
+import { useCharacterStore } from '../../store/useCharacterStore';
 import { RACES, CLASSES, Race, Class, Subrace, Subclass } from '../../types';
 
 // New Decentralized Hooks
@@ -24,7 +24,7 @@ export const useCharacterSheetLogic = () => {
     settings,
     viewMode,
     setViewMode,
-  } = useCharacter();
+  } = useCharacterStore();
   
   const [inventorySubTab, setInventorySubTab] = useState<InventorySubTab>('all');
   const [selectedAttribute, setSelectedAttribute] = useState<string | null>(null);

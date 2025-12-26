@@ -33,7 +33,7 @@ export const SpellViewModal: React.FC<SpellViewModalProps> = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4 backdrop-blur-sm"
+          className="fixed inset-0 bg-black/80 z-[1050] flex items-center justify-center p-4 backdrop-blur-sm"
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}

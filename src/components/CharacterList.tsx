@@ -1,13 +1,13 @@
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { useCharacter } from '../context/CharacterContext';
+import { useCharacterStore } from '../store/useCharacterStore';
 import { CharacterCard } from './CharacterCard';
 import { CharacterCreation } from './CharacterCreation/index';
 import { Plus, Upload, User, Settings } from 'lucide-react';
 import { SettingsModal } from './SettingsModal';
 
 export const CharacterList: React.FC = () => {
-  const { charactersList, loadCharacter, deleteCharacter, importFromJSON, goToCharacterList, settings } = useCharacter();
+  const { charactersList, loadCharacter, deleteCharacter, importFromJSON, goToCharacterList, settings } = useCharacterStore();
   const [showCreation, setShowCreation] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);

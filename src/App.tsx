@@ -1,12 +1,40 @@
-import React from 'react';
-import { CharacterProvider, useCharacter } from './context/CharacterContext';
+import React, { useEffect } from 'react';
+import { useCharacterStore } from './store/useCharacterStore';
 import { CharacterSheet } from './components/CharacterSheet/index';
 import { CharacterList } from './components/CharacterList';
 import { Navbar } from './components/Navbar';
 import { Toaster } from 'react-hot-toast';
 
 const AppContent: React.FC = () => {
-  const { character, viewMode } = useCharacter();
+  const { character, isLoaded, loadCharactersList, migrateOldData, updateSettings, settings } = useCharacterStore();
+
+  useEffect(() => {
+    const initialize = async () => {
+      if (!isLoaded) {
+        migrateOldData();
+        await loadCharactersList();
+      }
+    };
+    initialize();
+
+    const handleSettingsUpdate = (e: any) => {
+      const s = e.detail;
+      updateSettings({
+        storagePath: s.storagePath,
+        autoSave: s.autoSave,
+        compactCards: s.compactCards,
+        notifications: s.showNotifications,
+      });
+    };
+    window.addEventListener('app-settings-updated', handleSettingsUpdate);
+    return () => window.removeEventListener('app-settings-updated', handleSettingsUpdate);
+  }, [isLoaded, loadCharactersList, migrateOldData, updateSettings]);
+
+  useEffect(() => {
+    if (isLoaded) {
+      loadCharactersList();
+    }
+  }, [settings.storagePath, isLoaded, loadCharactersList]);
   
   return (
     <div className="relative min-h-screen bg-dark-bg text-white">
@@ -42,9 +70,7 @@ const AppContent: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <CharacterProvider>
       <AppContent />
-    </CharacterProvider>
   );
 };
 

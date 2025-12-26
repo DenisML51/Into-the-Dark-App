@@ -143,6 +143,7 @@ export const CharacterSheetModals: React.FC<CharacterSheetModalsProps> = (props)
     saveResource,
     deleteResource,
     selectedLimb,
+    setSelectedLimb,
     showLimbModal,
     setShowLimbModal,
     getLimbType,
@@ -245,6 +246,18 @@ export const CharacterSheetModals: React.FC<CharacterSheetModalsProps> = (props)
         tempHP={character.tempHP}
         maxHPBonus={character.maxHPBonus}
         onUpdate={updateHealth}
+        character={character}
+        getLimbType={getLimbType}
+        openLimbModal={(limb) => {
+          setSelectedLimb(limb);
+          setShowLimbModal(true);
+        }}
+        openItemView={(item) => {
+          setViewingItem(item);
+          setShowItemViewModal(true);
+        }}
+        openACModal={() => setShowACModal(true)}
+        updateLimb={updateLimb}
       />
 
       <SanityModal

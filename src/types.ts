@@ -168,6 +168,21 @@ export interface Resistance {
   level: ResistanceLevel;
 }
 
+export interface CharacterPreview {
+  id: string;
+  name: string;
+  class: string;
+  subclass: string;
+  level: number;
+  currentHP: number;
+  maxHP: number;
+  avatar?: string;
+  resistances?: Resistance[];
+}
+
+export type TabType = 'personality' | 'health' | 'abilities' | 'spells' | 'attacks' | 'equipment' | 'inventory' | 'stats';
+export type ViewMode = 'tabs' | 'hotbar';
+
 export const DAMAGE_TYPES = [
   'Физический', 'Колющий', 'Рубящий', 'Дробящий', 
   'Огонь', 'Холод', 'Электричество', 'Яд', 'Кислота', 

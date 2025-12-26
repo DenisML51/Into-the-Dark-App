@@ -114,7 +114,7 @@ export const ArmorClassModal: React.FC<ArmorClassModalProps> = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 overflow-y-auto"
+          className="fixed inset-0 bg-black/70 z-[1100] flex items-center justify-center p-4 overflow-y-auto"
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}

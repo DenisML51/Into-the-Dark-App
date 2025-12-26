@@ -1,7 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { CharacterPreview } from '../context/CharacterContext';
-import { CLASSES, Resistance } from '../types';
+import { CLASSES, Resistance, CharacterPreview } from '../types';
 import { Heart, User, X } from 'lucide-react';
 import { DAMAGE_TYPE_COLORS, getDamageTypeIcon } from '../utils/damageUtils';
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useCharacter, TabType } from '../context/CharacterContext';
+import { useCharacterStore } from '../store/useCharacterStore';
+import { TabType } from '../types';
 import { 
   User, 
   Heart, 
@@ -54,7 +55,7 @@ export const Navbar: React.FC = () => {
     updateResourceCount,
     viewMode,
     setViewMode
-  } = useCharacter();
+  } = useCharacterStore();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [isXl, setIsXl] = useState(window.innerWidth < 1280);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
